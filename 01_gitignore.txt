@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.env
+postgres_data/
+redis_data/
+*.log
+.DS_Store
+.env
