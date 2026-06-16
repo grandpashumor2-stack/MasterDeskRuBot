@@ -1,2 +1,0 @@
-# MasterDeskRuBot
-MasterDeskRuBot
