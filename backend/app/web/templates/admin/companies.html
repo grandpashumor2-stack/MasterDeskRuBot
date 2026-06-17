@@ -1,0 +1,74 @@
+{% extends "owner/_layout.html" %}
+{% set active = "clients" %}
+{% block title %}Клиенты — AutoService AI{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Клиенты</h1>
+  <div class="text-sm text-gray-500">Всего: <span class="font-semibold text-gray-900">{{ clients|length }}</span></div>
+</div>
+
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+  <div class="p-4 border-b border-gray-100">
+    <input type="text" id="searchInput" placeholder="🔍 Поиск по имени, телефону..." onkeyup="filterClients()"
+      class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm" id="clientsTable">
+      <thead>
+        <tr class="bg-gray-50 border-b border-gray-100">
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Клиент</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Телефон</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Автомобили</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Визитов</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Последний визит</th>
+          <th class="text-left px-4 py-3 font-medium text-gray-500">Telegram</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for client in clients %}
+        <tr class="hover:bg-gray-50 transition-colors client-row">
+          <td class="px-4 py-3">
+            <p class="font-medium text-gray-900">{{ client.full_name or '—' }}</p>
+            {% if client.notes %}<p class="text-xs text-gray-400 mt-0.5">{{ client.notes }}</p>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-600">{{ client.phone or '—' }}</td>
+          <td class="px-4 py-3">
+            {% if client.vehicles %}
+              {% for v in client.vehicles %}
+              <p class="text-xs text-gray-600">{{ v.make or '' }} {{ v.model or '' }} {{ v.year or '' }}</p>
+              {% endfor %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <span class="{% if client.visit_count >= 5 %}font-bold text-green-700{% elif client.visit_count >= 2 %}text-blue-700{% else %}text-gray-500{% endif %}">
+              {{ client.visit_count }}
+            </span>
+            {% if client.visit_count >= 2 %}
+            <span class="ml-1 text-xs text-green-600">★</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-gray-500 text-xs">
+            {{ client.last_visit_at.strftime('%d.%m.%Y') if client.last_visit_at else '—' }}
+          </td>
+          <td class="px-4 py-3">
+            {% if client.telegram_id %}
+            <span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">✓ Telegram</span>
+            {% else %}<span class="text-xs text-gray-400">—</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="px-4 py-12 text-center text-gray-400">Клиентов пока нет</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+function filterClients() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.querySelectorAll('.client-row').forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}
