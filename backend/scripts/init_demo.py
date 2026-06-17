@@ -1,0 +1,290 @@
+{% extends "owner/_layout.html" %}
+{% set active = "billing" %}
+{% block title %}Тарифы и оплата — AutoService AI{% endblock %}
+{% block content %}
+<h1 class="text-2xl font-bold text-gray-900 mb-2">Тарифы и оплата</h1>
+<p class="text-gray-500 text-sm mb-6">Оплата картой РФ, СБП, SberPay — через ЮKassa</p>
+
+<!-- Current subscription -->
+{% if subscription %}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mb-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <p class="text-sm text-gray-500">Текущий тариф</p>
+      <p class="text-xl font-bold text-gray-900">{{ subscription.plan.display_name if subscription.plan else '—' }}</p>
+      {% if subscription.status.value == 'trial' %}
+        <span class="inline-flex items-center gap-1 mt-1 text-xs font-medium bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">
+          🆓 Пробный период до {{ subscription.trial_ends_at.strftime('%d.%m.%Y') if subscription.trial_ends_at else '—' }}
+        </span>
+      {% elif subscription.status.value == 'active' %}
+        <span class="inline-flex items-center gap-1 mt-1 text-xs font-medium bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+          ✅ Активна до {{ subscription.current_period_end.strftime('%d.%m.%Y') if subscription.current_period_end else '—' }}
+        </span>
+      {% elif subscription.status.value == 'past_due' %}
+        <span class="inline-flex items-center gap-1 mt-1 text-xs font-medium bg-red-100 text-red-800 px-2 py-0.5 rounded-full">
+          ⚠️ Требуется оплата
+        </span>
+      {% endif %}
+    </div>
+    {% if subscription.plan %}
+    <div class="text-right">
+      <p class="text-2xl font-bold text-gray-900">{{ '{:,.0f}'.format(subscription.plan.monthly_price).replace(',', ' ') }} ₽</p>
+      <p class="text-xs text-gray-500">в месяц</p>
+    </div>
+    {% endif %}
+  </div>
+  {% if subscription.plan %}
+  <div class="mt-4 pt-4 border-t border-gray-100 grid grid-cols-3 gap-4 text-center text-sm">
+    <div>
+      <p class="font-semibold text-gray-900">{{ subscription.dialogs_used }}</p>
+      <p class="text-gray-500 text-xs">диалогов использовано</p>
+    </div>
+    <div>
+      <p class="font-semibold text-gray-900">
+        {% if subscription.plan.limits.get('max_dialogs') == -1 %}∞{% else %}{{ subscription.plan.limits.get('max_dialogs', '?') }}{% endif %}
+      </p>
+      <p class="text-gray-500 text-xs">лимит диалогов</p>
+    </div>
+    <div>
+      <p class="font-semibold text-gray-900">
+        {% if subscription.plan.limits.get('max_employees') == -1 %}∞{% else %}{{ subscription.plan.limits.get('max_employees', '?') }}{% endif %}
+      </p>
+      <p class="text-gray-500 text-xs">сотрудников</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- Billing period toggle -->
+<div class="flex items-center justify-center gap-4 mb-6" x-data="{yearly: false}">
+  <span class="text-sm font-medium" :class="!yearly ? 'text-gray-900' : 'text-gray-400'">Ежемесячно</span>
+  <button @click="yearly = !yearly"
+    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+    :class="yearly ? 'bg-blue-600' : 'bg-gray-300'">
+    <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform shadow"
+      :class="yearly ? 'translate-x-6' : 'translate-x-1'"></span>
+  </button>
+  <span class="text-sm font-medium" :class="yearly ? 'text-gray-900' : 'text-gray-400'">
+    Ежегодно <span class="text-green-600 font-semibold">−25%</span>
+  </span>
+
+<!-- Plans grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-5 mt-4" id="plansGrid">
+
+  <!-- START -->
+  <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-100 p-6 flex flex-col">
+    <div class="mb-4">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">START</p>
+      <div x-show="!yearly">
+        <span class="text-4xl font-bold text-gray-900">2 990</span>
+        <span class="text-gray-500 text-sm"> ₽/мес</span>
+      </div>
+      <div x-show="yearly" x-cloak>
+        <span class="text-4xl font-bold text-gray-900">2 243</span>
+        <span class="text-gray-500 text-sm"> ₽/мес</span>
+        <p class="text-xs text-green-600 mt-0.5">26 910 ₽/год</p>
+      </div>
+    </div>
+    <ul class="space-y-2 flex-1 mb-6">
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Telegram бот 24/7</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Приём заявок</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> До 300 диалогов/мес</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Напоминания клиентам</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Управление услугами и ценами</li>
+      <li class="flex items-start gap-2 text-sm text-gray-400"><span class="text-gray-300 mt-0.5">✗</span> AI-консультант</li>
+      <li class="flex items-start gap-2 text-sm text-gray-400"><span class="text-gray-300 mt-0.5">✗</span> Рассылки</li>
+    </ul>
+    <button onclick="pay('start', false)" x-show="!yearly"
+      class="w-full bg-gray-900 hover:bg-gray-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+      Выбрать START
+    </button>
+    <button onclick="pay('start', true)" x-show="yearly" x-cloak
+      class="w-full bg-gray-900 hover:bg-gray-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+      Выбрать START (год)
+    </button>
+  </div>
+
+  <!-- BUSINESS -->
+  <div class="bg-white rounded-2xl shadow-sm border-2 border-blue-500 p-6 flex flex-col relative">
+    <div class="absolute -top-3 left-1/2 -translate-x-1/2">
+      <span class="bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Популярный</span>
+    </div>
+    <div class="mb-4">
+      <p class="text-xs font-semibold text-blue-600 uppercase tracking-wider mb-1">BUSINESS</p>
+      <div x-show="!yearly">
+        <span class="text-4xl font-bold text-gray-900">5 990</span>
+        <span class="text-gray-500 text-sm"> ₽/мес</span>
+      </div>
+      <div x-show="yearly" x-cloak>
+        <span class="text-4xl font-bold text-gray-900">4 493</span>
+        <span class="text-gray-500 text-sm"> ₽/мес</span>
+        <p class="text-xs text-green-600 mt-0.5">53 910 ₽/год</p>
+      </div>
+    </div>
+    <ul class="space-y-2 flex-1 mb-6">
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Всё из START</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> <strong>AI-консультант</strong></li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> До 2 000 диалогов/мес</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Автозапись на ремонт</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> <strong>Рассылки по сегментам</strong></li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Возврат клиентов</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Расширенная аналитика</li>
+    </ul>
+    <button onclick="pay('business', false)" x-show="!yearly"
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+      Выбрать BUSINESS
+    </button>
+    <button onclick="pay('business', true)" x-show="yearly" x-cloak
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+      Выбрать BUSINESS (год)
+    </button>
+  </div>
+
+  <!-- PREMIUM -->
+  <div class="bg-white rounded-2xl shadow-sm border-2 border-purple-200 p-6 flex flex-col">
+    <div class="mb-4">
+      <p class="text-xs font-semibold text-purple-600 uppercase tracking-wider mb-1">PREMIUM</p>
+      <div x-show="!yearly">
+        <span class="text-4xl font-bold text-gray-900">11 990</span>
+        <span class="text-gray-500 text-sm"> ₽/мес</span>
+      </div>
+      <div x-show="yearly" x-cloak>
+        <span class="text-4xl font-bold text-gray-900">8 993</span>
+        <span class="text-gray-500 text-sm"> ₽/мес</span>
+        <p class="text-xs text-green-600 mt-0.5">107 910 ₽/год</p>
+      </div>
+    </div>
+    <ul class="space-y-2 flex-1 mb-6">
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Всё из BUSINESS</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> <strong>Безлимитные диалоги</strong></li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Несколько сотрудников</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> Приоритетная поддержка</li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> <strong>API доступ</strong></li>
+      <li class="flex items-start gap-2 text-sm text-gray-700"><span class="text-green-500 mt-0.5">✓</span> White Label</li>
+    </ul>
+    <button onclick="pay('premium', false)" x-show="!yearly"
+      class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+      Выбрать PREMIUM
+    </button>
+    <button onclick="pay('premium', true)" x-show="yearly" x-cloak
+      class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm">
+      Выбрать PREMIUM (год)
+    </button>
+  </div>
+
+</div>
+</div>
+
+<!-- Payment methods info -->
+<div class="mt-8 bg-gray-50 rounded-xl p-5 border border-gray-100">
+  <p class="text-sm font-semibold text-gray-700 mb-3">💳 Способы оплаты (ЮKassa)</p>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="bg-white rounded-lg p-3 text-center border border-gray-100">
+      <p class="text-lg mb-1">💳</p>
+      <p class="text-xs text-gray-600 font-medium">Карта Visa / MC / МИР</p>
+    </div>
+    <div class="bg-white rounded-lg p-3 text-center border border-gray-100">
+      <p class="text-lg mb-1">⚡</p>
+      <p class="text-xs text-gray-600 font-medium">СБП (по QR)</p>
+    </div>
+    <div class="bg-white rounded-lg p-3 text-center border border-gray-100">
+      <p class="text-lg mb-1">🟢</p>
+      <p class="text-xs text-gray-600 font-medium">SberPay</p>
+    </div>
+    <div class="bg-white rounded-lg p-3 text-center border border-gray-100">
+      <p class="text-lg mb-1">🟡</p>
+      <p class="text-xs text-gray-600 font-medium">T-Pay / YandexPay</p>
+    </div>
+  </div>
+  <p class="text-xs text-gray-400 mt-3">Платежи обрабатываются ЮKassa (ООО «ЮМани»). Комиссия включена в стоимость. Автоматическое продление подписки.</p>
+</div>
+
+<!-- Invoice history -->
+<div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-100">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h2 class="font-semibold text-gray-900">История платежей</h2>
+  </div>
+  <div id="paymentHistory" class="divide-y divide-gray-50">
+    <div class="px-5 py-8 text-center text-gray-400 text-sm">Загрузка...</div>
+  </div>
+</div>
+
+<!-- Loading overlay -->
+<div id="paymentOverlay" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+  <div class="bg-white rounded-2xl p-8 text-center max-w-sm mx-4">
+    <div class="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+    <p class="font-semibold text-gray-900 mb-1">Переходим к оплате...</p>
+    <p class="text-sm text-gray-500">Вы будете перенаправлены на страницу ЮKassa</p>
+  </div>
+</div>
+
+<script>
+const token = () => document.cookie.split(';').find(c=>c.trim().startsWith('access_token='))?.split('=')[1];
+
+async function pay(planName, isYearly) {
+  document.getElementById('paymentOverlay').classList.remove('hidden');
+  try {
+    const resp = await fetch('/api/v1/payments/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token()}` },
+      body: JSON.stringify({
+        plan_name: planName,
+        is_yearly: isYearly,
+        return_url: window.location.origin + '/billing?payment=success'
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      alert('Ошибка: ' + (data.detail || 'Попробуйте позже'));
+      document.getElementById('paymentOverlay').classList.add('hidden');
+      return;
+    }
+    // Redirect to YooKassa payment page
+    window.location.href = data.confirmation_url;
+  } catch(e) {
+    alert('Ошибка соединения');
+    document.getElementById('paymentOverlay').classList.add('hidden');
+  }
+}
+
+async function loadHistory() {
+  try {
+    const resp = await fetch('/api/v1/payments/invoices', {
+      headers: { 'Authorization': `Bearer ${token()}` }
+    });
+    const invoices = await resp.json();
+    const el = document.getElementById('paymentHistory');
+    if (!invoices.length) {
+      el.innerHTML = '<div class="px-5 py-8 text-center text-gray-400 text-sm">Платежей ещё не было</div>';
+      return;
+    }
+    el.innerHTML = invoices.map(inv => `
+      <div class="px-5 py-3 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-900">${inv.number}</p>
+          <p class="text-xs text-gray-500">${new Date(inv.created_at).toLocaleDateString('ru')}</p>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-semibold text-gray-900">${Number(inv.amount).toLocaleString('ru')} ₽</p>
+          <span class="text-xs ${inv.is_paid ? 'text-green-600' : 'text-yellow-600'}">${inv.is_paid ? '✅ Оплачен' : '⏳ Ожидает'}</span>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('paymentHistory').innerHTML = '<div class="px-5 py-4 text-sm text-gray-400">Ошибка загрузки</div>';
+  }
+}
+
+// Check success redirect
+if (new URLSearchParams(window.location.search).get('payment') === 'success') {
+  const banner = document.createElement('div');
+  banner.className = 'fixed top-4 right-4 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg z-50 font-medium';
+  banner.textContent = '✅ Оплата прошла успешно! Подписка активирована.';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+loadHistory();
+</script>
+{% endblock %}
