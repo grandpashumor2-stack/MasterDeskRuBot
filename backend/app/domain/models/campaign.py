@@ -1,7 +1,6 @@
-from typing import Optional
 import uuid
 from datetime import datetime
-from sqlalchemy import String, ForeignKey, DateTime, Text, Enum as SAEnum, Integer
+from sqlalchemy import String, ForeignKey, DateTime, Text, Enum as SAEnum, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.infrastructure.database.connection import Base
@@ -24,9 +23,10 @@ class Campaign(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[CampaignStatus] = mapped_column(SAEnum(CampaignStatus), default=CampaignStatus.DRAFT)
+    # Segment filter: {"min_visits": 2, "last_visit_days": 180, "has_vehicle_make": "Toyota"}
     segment_filter: Mapped[dict] = mapped_column(JSONB, default=dict)
-    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
-    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime)
     sent_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 

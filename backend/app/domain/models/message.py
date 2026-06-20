@@ -1,7 +1,6 @@
-from typing import Optional
 import uuid
 from datetime import datetime
-from sqlalchemy import String, ForeignKey, Text, Boolean, Enum as SAEnum
+from sqlalchemy import String, ForeignKey, DateTime, Text, Enum as SAEnum, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
 from app.infrastructure.database.connection import Base
@@ -18,8 +17,8 @@ class Message(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
-    client_id: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"))
-    telegram_id: Mapped[Optional[str]] = mapped_column(String(50))
+    client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"))
+    telegram_id: Mapped[str | None] = mapped_column(String(50))
     direction: Mapped[MessageDirection] = mapped_column(SAEnum(MessageDirection))
     text: Mapped[str] = mapped_column(Text)
     is_ai_response: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -1,115 +1,105 @@
-from typing import Optional, List
-from datetime import datetime, date, timedelta
-from sqlalchemy import select, and_, func
-from sqlalchemy.orm import selectinload
+from datetime import datetime, date, timedelta, time
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.models.appointment import Appointment, AppointmentStatus
-from app.domain.repositories.base import BaseRepository
+from app.domain.models.company import WorkingHours
+from app.domain.repositories.appointment import AppointmentRepository
 import uuid
 
 
-class AppointmentRepository(BaseRepository[Appointment]):
+class BookingService:
     def __init__(self, session: AsyncSession):
-        super().__init__(Appointment, session)
+        self.apt_repo = AppointmentRepository(session)
 
-    async def get_company_appointments(
-        self, company_id: uuid.UUID,
-        status: Optional[AppointmentStatus] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-    ) -> List[Appointment]:
-        q = select(Appointment).where(Appointment.company_id == company_id)
-        if status:
-            q = q.where(Appointment.status == status)
-        if date_from:
-            q = q.where(Appointment.scheduled_at >= date_from)
-        if date_to:
-            q = q.where(Appointment.scheduled_at <= date_to)
-        q = q.options(
-            selectinload(Appointment.client),
-            selectinload(Appointment.service),
-            selectinload(Appointment.vehicle),
-        ).order_by(Appointment.scheduled_at)
-        result = await self.session.execute(q)
-        return list(result.scalars().all())
+    def _get_working_hours(self, working_hours: list[WorkingHours], target_date: date) -> Optional[WorkingHours]:
+        day_of_week = target_date.weekday()  # 0=Mon, 6=Sun
+        for wh in working_hours:
+            if wh.day_of_week == day_of_week:
+                return wh
+        return None
 
-    async def get_today_appointments(self, company_id: uuid.UUID) -> List[Appointment]:
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        today_end = today_start + timedelta(days=1)
-        return await self.get_company_appointments(company_id, date_from=today_start, date_to=today_end)
+    def _generate_slots(self, wh: WorkingHours, duration_minutes: int = 60) -> List[time]:
+        """Generate available time slots for a working day."""
+        if not wh.is_working or not wh.open_time or not wh.close_time:
+            return []
+        
+        slots = []
+        current = datetime.combine(date.today(), wh.open_time)
+        end = datetime.combine(date.today(), wh.close_time)
+        slot_delta = timedelta(minutes=duration_minutes)
 
-    async def get_busy_slots(self, company_id: uuid.UUID, target_date: date) -> List[datetime]:
-        """Get booked time slots for a specific date."""
-        day_start = datetime(target_date.year, target_date.month, target_date.day)
-        day_end = day_start + timedelta(days=1)
-        result = await self.session.execute(
-            select(Appointment.scheduled_at).where(
-                and_(
-                    Appointment.company_id == company_id,
-                    Appointment.scheduled_at >= day_start,
-                    Appointment.scheduled_at < day_end,
-                    Appointment.status.notin_([AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW]),
-                )
-            )
-        )
-        return list(result.scalars().all())
+        while current + slot_delta <= end:
+            # Skip break time
+            if wh.break_start and wh.break_end:
+                break_s = datetime.combine(date.today(), wh.break_start)
+                break_e = datetime.combine(date.today(), wh.break_end)
+                if not (current >= break_s and current < break_e):
+                    slots.append(current.time())
+            else:
+                slots.append(current.time())
+            current += slot_delta
 
-    async def get_pending_reminders(self) -> List[Appointment]:
-        """Get appointments needing reminders."""
-        now = datetime.utcnow()
-        # 24h reminder: appointments in 23-25h
-        reminder_24h_from = now + timedelta(hours=23)
-        reminder_24h_to = now + timedelta(hours=25)
-        # 2h reminder: appointments in 1.5-2.5h
-        reminder_2h_from = now + timedelta(minutes=90)
-        reminder_2h_to = now + timedelta(minutes=150)
+        return slots
 
-        result = await self.session.execute(
-            select(Appointment)
-            .options(selectinload(Appointment.client), selectinload(Appointment.service))
-            .where(
-                and_(
-                    Appointment.status == AppointmentStatus.CONFIRMED,
-                    (
-                        (
-                            Appointment.scheduled_at.between(reminder_24h_from, reminder_24h_to)
-                            & (Appointment.reminder_24h_sent == False)
-                        ) |
-                        (
-                            Appointment.scheduled_at.between(reminder_2h_from, reminder_2h_to)
-                            & (Appointment.reminder_2h_sent == False)
-                        )
-                    )
-                )
-            )
-        )
-        return list(result.scalars().all())
+    async def get_available_slots(
+        self,
+        company_id: uuid.UUID,
+        working_hours: list[WorkingHours],
+        days_ahead: int = 3,
+        duration_minutes: int = 60,
+    ) -> dict[date, List[time]]:
+        """Get available booking slots for next N days."""
+        available = {}
+        today = date.today()
+        busy_slots: dict[date, List[datetime]] = {}
 
-    async def count_by_status(self, company_id: uuid.UUID, status: AppointmentStatus) -> int:
-        result = await self.session.execute(
-            select(func.count()).where(
-                and_(Appointment.company_id == company_id, Appointment.status == status)
-            )
-        )
-        return result.scalar()
+        for i in range(days_ahead):
+            check_date = today + timedelta(days=i)
+            busy = await self.apt_repo.get_busy_slots(company_id, check_date)
+            busy_slots[check_date] = busy
 
-    async def get_stats(self, company_id: uuid.UUID, days: int = 30) -> dict:
-        since = datetime.utcnow() - timedelta(days=days)
-        total_result = await self.session.execute(
-            select(func.count()).where(
-                and_(Appointment.company_id == company_id, Appointment.created_at >= since)
-            )
-        )
-        completed_result = await self.session.execute(
-            select(func.count()).where(
-                and_(
-                    Appointment.company_id == company_id,
-                    Appointment.status == AppointmentStatus.COMPLETED,
-                    Appointment.created_at >= since,
-                )
-            )
-        )
-        return {
-            "total": total_result.scalar(),
-            "completed": completed_result.scalar(),
-      }
+        for i in range(days_ahead):
+            check_date = today + timedelta(days=i)
+            wh = self._get_working_hours(working_hours, check_date)
+            if not wh or not wh.is_working:
+                continue
+
+            all_slots = self._generate_slots(wh, duration_minutes)
+            busy_times = {dt.time() for dt in busy_slots.get(check_date, [])}
+            free_slots = [s for s in all_slots if s not in busy_times]
+
+            # Skip past time for today
+            if check_date == today:
+                now_time = datetime.now().time()
+                # Add 1 hour buffer
+                buffer = (datetime.now() + timedelta(hours=1)).time()
+                free_slots = [s for s in free_slots if s > buffer]
+
+            if free_slots:
+                available[check_date] = free_slots
+
+        return available
+
+    def format_slots_message(self, slots: dict[date, List[time]]) -> str:
+        """Format available slots as a readable message."""
+        if not slots:
+            return "К сожалению, свободных мест нет на ближайшие дни. Позвоните нам для записи."
+
+        DAY_NAMES = {
+            0: "Понедельник", 1: "Вторник", 2: "Среда",
+            3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"
+        }
+        today = date.today()
+        lines = ["📅 Доступное время для записи:\n"]
+        for d, times in list(slots.items())[:3]:  # Show max 3 days
+            if d == today:
+                day_label = "Сегодня"
+            elif d == today + timedelta(days=1):
+                day_label = "Завтра"
+            else:
+                day_label = f"{DAY_NAMES[d.weekday()]}, {d.strftime('%d.%m')}"
+
+            time_strs = [t.strftime("%H:%M") for t in times[:5]]  # Max 5 slots per day
+            lines.append(f"*{day_label}:* {', '.join(time_strs)}")
+
+        lines.append("\nВыберите удобное время или напишите желаемое.")
+        return "\n".join(lines)
