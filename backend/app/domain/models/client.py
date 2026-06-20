@@ -1,4 +1,3 @@
-from typing import Optional
 import uuid
 from datetime import datetime
 from sqlalchemy import String, ForeignKey, DateTime, Integer
@@ -12,13 +11,13 @@ class Client(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
-    telegram_id: Mapped[Optional[str]] = mapped_column(String(50))
-    telegram_username: Mapped[Optional[str]] = mapped_column(String(100))
-    full_name: Mapped[Optional[str]] = mapped_column(String(255))
-    phone: Mapped[Optional[str]] = mapped_column(String(20))
-    notes: Mapped[Optional[str]] = mapped_column(String(1000))
+    telegram_id: Mapped[str | None] = mapped_column(String(50))
+    telegram_username: Mapped[str | None] = mapped_column(String(100))
+    full_name: Mapped[str | None] = mapped_column(String(255))
+    phone: Mapped[str | None] = mapped_column(String(20))
+    notes: Mapped[str | None] = mapped_column(String(1000))
     visit_count: Mapped[int] = mapped_column(Integer, default=0)
-    last_visit_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    last_visit_at: Mapped[datetime | None] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     company: Mapped["Company"] = relationship(back_populates="clients")
@@ -32,8 +31,13 @@ class Vehicle(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     client_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="CASCADE"))
-    make: Mapped[Optional[str]] = mapped_column(String(100))
-    model: Mapped[Optional[str]] = mapped_column(String(100))
-    year: Mapped[Optional[int]] = mapped_column(Integer)
-    license_plate: Mapped[Optional[str]] = mapped_column(String(20))
-    vin: Mapped[Optional[str]] = mapped_column(String(17))
+    make: Mapped[str | None] = mapped_column(String(100))       # Toyota, BMW, Mercedes
+    model: Mapped[str | None] = mapped_column(String(100))      # Camry, X5, E-Class
+    year: Mapped[int | None] = mapped_column(Integer)
+    license_plate: Mapped[str | None] = mapped_column(String(20))
+    vin: Mapped[str | None] = mapped_column(String(17))
+    mileage: Mapped[int | None] = mapped_column(Integer)
+    extra: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+    client: Mapped["Client"] = relationship(back_populates="vehicles")
+    appointments: Mapped[list["Appointment"]] = relationship(back_populates="vehicle")

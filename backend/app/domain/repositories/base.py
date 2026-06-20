@@ -1,4 +1,3 @@
-from typing import Optional
 from typing import TypeVar, Generic, Type, Optional, List
 from uuid import UUID
 from sqlalchemy import select, func
@@ -39,7 +38,5 @@ class BaseRepository(Generic[ModelType]):
         await self.session.flush()
 
     async def count(self) -> int:
-        result = await self.session.execute(
-            select(func.count()).select_from(self.model)
-        )
+        result = await self.session.execute(select(func.count()).select_from(self.model))
         return result.scalar()

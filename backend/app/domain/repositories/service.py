@@ -1,5 +1,5 @@
 from typing import Optional, List
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.models.service import Service, ServicePrice
@@ -11,9 +11,7 @@ class ServiceRepository(BaseRepository[Service]):
     def __init__(self, session: AsyncSession):
         super().__init__(Service, session)
 
-    async def get_company_services(
-        self, company_id: uuid.UUID, active_only: bool = True
-    ) -> List[Service]:
+    async def get_company_services(self, company_id: uuid.UUID, active_only: bool = True) -> List[Service]:
         q = select(Service).where(Service.company_id == company_id)
         if active_only:
             q = q.where(Service.is_active == True)
@@ -21,9 +19,8 @@ class ServiceRepository(BaseRepository[Service]):
         result = await self.session.execute(q)
         return list(result.scalars().all())
 
-    async def search_by_keywords(
-        self, company_id: uuid.UUID, keywords: list[str]
-    ) -> List[Service]:
+    async def search_by_keywords(self, company_id: uuid.UUID, keywords: list[str]) -> List[Service]:
+        """Find services matching given keywords."""
         services = await self.get_company_services(company_id)
         matched = []
         keywords_lower = [k.lower() for k in keywords]

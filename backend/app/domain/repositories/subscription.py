@@ -3,9 +3,7 @@ from datetime import datetime
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.domain.models.subscription import (
-    Plan, Subscription, SubscriptionStatus, PlanName
-)
+from app.domain.models.subscription import Plan, Subscription, Payment, SubscriptionStatus, PlanName
 from app.domain.repositories.base import BaseRepository
 import uuid
 
@@ -15,15 +13,11 @@ class PlanRepository(BaseRepository[Plan]):
         super().__init__(Plan, session)
 
     async def get_by_name(self, name: PlanName) -> Optional[Plan]:
-        result = await self.session.execute(
-            select(Plan).where(Plan.name == name)
-        )
+        result = await self.session.execute(select(Plan).where(Plan.name == name))
         return result.scalar_one_or_none()
 
     async def get_active_plans(self) -> List[Plan]:
-        result = await self.session.execute(
-            select(Plan).where(Plan.is_active == True)
-        )
+        result = await self.session.execute(select(Plan).where(Plan.is_active == True))
         return list(result.scalars().all())
 
 
@@ -42,15 +36,13 @@ class SubscriptionRepository(BaseRepository[Subscription]):
     async def get_active_count(self) -> int:
         result = await self.session.execute(
             select(func.count()).where(
-                Subscription.status.in_([
-                    SubscriptionStatus.ACTIVE,
-                    SubscriptionStatus.TRIAL
-                ])
+                Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL])
             )
         )
         return result.scalar()
 
     async def get_mrr(self) -> float:
+        """Calculate Monthly Recurring Revenue."""
         result = await self.session.execute(
             select(Subscription)
             .options(selectinload(Subscription.plan))

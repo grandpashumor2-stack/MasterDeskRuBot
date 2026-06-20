@@ -9,24 +9,29 @@ from app.api.v1.router import api_router
 from app.web.panel import web_router
 from app.infrastructure.scheduler.tasks import setup_scheduler
 from app.infrastructure.database.connection import engine
-from app.domain.models import *  # noqa
+from app.domain.models import *  # noqa: ensure all models are loaded
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Запуск МастерДеск...")
+    logger.info("Starting AutoService AI Manager...")
+    
+    # Start background scheduler
     scheduler = setup_scheduler()
+    
     yield
+    
+    # Shutdown
     scheduler.shutdown()
     await engine.dispose()
-    logger.info("Остановлен.")
+    logger.info("Shutdown complete.")
 
 
 app = FastAPI(
-    title="МастерДеск",
-    version="1.0.0",
+    title="AutoService AI Manager",
+    version=settings.APP_VERSION,
     description="SaaS платформа для автосервисов России",
     lifespan=lifespan,
 )
@@ -39,11 +44,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# API routes
 app.include_router(api_router)
+
+# Web panel routes
 app.include_router(web_router)
+
+# Static files
 app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
 
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "app": settings.APP_NAME}
+    return {"status": "ok", "version": settings.APP_VERSION}
