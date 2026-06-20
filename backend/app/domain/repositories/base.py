@@ -1,3 +1,4 @@
+from typing import Optional
 from typing import TypeVar, Generic, Type, Optional, List
 from uuid import UUID
 from sqlalchemy import select, func

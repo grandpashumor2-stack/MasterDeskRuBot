@@ -1,15 +1,14 @@
-from fastapi import APIRouter
-from app.api.v1.endpoints import auth, company, services, appointments, analytics, campaigns, clients, admin
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
+from app.infrastructure.database.connection import get_db
+from app.core.security import get_current_owner
+from app.domain.repositories.appointment import AppointmentRepository
 
-api_router = APIRouter(prefix="/api/v1")
+router = APIRouter(prefix="/analytics", tags=["analytics"])
 
-api_router.include_router(auth.router)
-api_router.include_router(company.router)
-api_router.include_router(services.router)
-api_router.include_router(appointments.router)
-api_router.include_router(analytics.router)
-api_router.include_router(campaigns.router)
-api_router.include_router(clients.router)
-api_router.include_router(admin.router)
-from app.api.v1.endpoints import payments
-api_router.include_router(payments.router)
+@router.get("/{company_id}/summary")
+async def get_summary(company_id: UUID, session: AsyncSession = Depends(get_db), current_user=Depends(get_current_owner)):
+    repo = AppointmentRepository(session)
+    appointments = await repo.get_company_appointments(company_id)
+    return {"total": len(appointments), "company_id": str(company_id)}

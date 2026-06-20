@@ -1,3 +1,4 @@
+from typing import Optional
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -38,7 +39,7 @@ class Plan(Base):
     monthly_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     yearly_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     limits: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    description: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     subscriptions: Mapped[list["Subscription"]] = relationship(back_populates="plan")
@@ -52,9 +53,9 @@ class Subscription(Base):
     plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("plans.id"))
     status: Mapped[SubscriptionStatus] = mapped_column(SAEnum(SubscriptionStatus), default=SubscriptionStatus.TRIAL)
     is_yearly: Mapped[bool] = mapped_column(Boolean, default=False)
-    trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime)
-    current_period_start: Mapped[datetime | None] = mapped_column(DateTime)
-    current_period_end: Mapped[datetime | None] = mapped_column(DateTime)
+    trial_ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    current_period_start: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    current_period_end: Mapped[Optional[datetime]] = mapped_column(DateTime)
     dialogs_used: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -72,8 +73,8 @@ class Payment(Base):
     subscription_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("subscriptions.id"))
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     status: Mapped[PaymentStatus] = mapped_column(SAEnum(PaymentStatus), default=PaymentStatus.PENDING)
-    payment_method: Mapped[str | None] = mapped_column(String(100))
-    external_id: Mapped[str | None] = mapped_column(String(255))
+    payment_method: Mapped[Optional[str]] = mapped_column(String(100))
+    external_id: Mapped[Optional[str]] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     subscription: Mapped["Subscription"] = relationship(back_populates="payments")
@@ -89,7 +90,7 @@ class Invoice(Base):
     period_start: Mapped[datetime] = mapped_column(DateTime)
     period_end: Mapped[datetime] = mapped_column(DateTime)
     is_paid: Mapped[bool] = mapped_column(Boolean, default=False)
-    paid_at: Mapped[datetime | None] = mapped_column(DateTime)
+    paid_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
 
     subscription: Mapped["Subscription"] = relationship(back_populates="invoices")

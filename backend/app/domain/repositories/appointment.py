@@ -42,4 +42,14 @@ class AppointmentRepository(BaseRepository[Appointment]):
 
     async def get_busy_slots(self, company_id: uuid.UUID, target_date: date) -> List[datetime]:
         day_start = datetime(target_date.year, target_date.month, target_date.day)
-        day_end = day_start +
+        day_end = day_start + timedelta(days=1)
+        q = select(Appointment).where(
+            Appointment.company_id == company_id,
+            Appointment.scheduled_at >= day_start,
+            Appointment.scheduled_at < day_end,
+            Appointment.status != AppointmentStatus.CANCELLED,
+        )
+        result = await self.session.execute(q)
+        appointments = list(result.scalars().all())
+        busy = [a.scheduled_at for a in appointments]
+        return busy

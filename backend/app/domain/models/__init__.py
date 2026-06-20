@@ -1,3 +1,4 @@
+from typing import Optional
 from .company import Company, WorkingHours
 from .user import User, Role
 from .employee import Employee

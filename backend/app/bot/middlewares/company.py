@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -16,10 +17,10 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 class PlanUpdate(BaseModel):
-    monthly_price: Decimal | None = None
-    yearly_price: Decimal | None = None
-    limits: dict | None = None
-    is_active: bool | None = None
+    monthly_price: Optional[Decimal] = None
+    yearly_price: Optional[Decimal] = None
+    limits: Optional[dict] = None
+    is_active: Optional[bool] = None
 
 
 @router.get("/companies")
