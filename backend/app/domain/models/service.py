@@ -1,3 +1,4 @@
+from typing import Optional
 import uuid
 from datetime import datetime
 from decimal import Decimal
@@ -35,7 +36,7 @@ class Service(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    description: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[Optional[str]] = mapped_column(Text)
     category: Mapped[ServiceCategory] = mapped_column(SAEnum(ServiceCategory), default=ServiceCategory.OTHER)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -55,11 +56,11 @@ class ServicePrice(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     service_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("services.id", ondelete="CASCADE"))
     price_type: Mapped[PriceType] = mapped_column(SAEnum(PriceType), default=PriceType.FIXED)
-    fixed_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    price_min: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
-    price_max: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
+    fixed_price: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
+    price_min: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
+    price_max: Mapped[Optional[Decimal]] = mapped_column(Numeric(10, 2))
     prices_by_make: Mapped[dict] = mapped_column(JSONB, default=dict)
-    car_make: Mapped[str | None] = mapped_column(String(100))
+    car_make: Mapped[Optional[str]] = mapped_column(String(100))
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
 
     service: Mapped["Service"] = relationship(back_populates="prices")

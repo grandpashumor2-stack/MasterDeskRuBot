@@ -1,38 +1,24 @@
-import json
-from typing import Any, Optional
-import redis.asyncio as aioredis
-from app.core.config import settings
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
+from app.infrastructure.database.connection import get_db
+from app.core.security import get_current_owner
+from app.domain.repositories.appointment import AppointmentRepository
+from app.api.v1.schemas.appointment import AppointmentCreate, AppointmentUpdate
 
-_redis: Optional[aioredis.Redis] = None
+router = APIRouter(prefix="/appointments", tags=["appointments"])
 
+@router.get("/{company_id}")
+async def list_appointments(company_id: UUID, session: AsyncSession = Depends(get_db), current_user=Depends(get_current_owner)):
+    repo = AppointmentRepository(session)
+    return await repo.get_company_appointments(company_id)
 
-async def get_redis() -> aioredis.Redis:
-    global _redis
-    if _redis is None:
-        _redis = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
-    return _redis
+@router.post("/{company_id}")
+async def create_appointment(company_id: UUID, data: AppointmentCreate, session: AsyncSession = Depends(get_db), current_user=Depends(get_current_owner)):
+    repo = AppointmentRepository(session)
+    return await repo.create(company_id=company_id, **data.model_dump())
 
-
-async def cache_get(key: str) -> Optional[Any]:
-    r = await get_redis()
-    val = await r.get(key)
-    if val:
-        return json.loads(val)
-    return None
-
-
-async def cache_set(key: str, value: Any, ttl: int = 300) -> None:
-    r = await get_redis()
-    await r.setex(key, ttl, json.dumps(value, default=str))
-
-
-async def cache_delete(key: str) -> None:
-    r = await get_redis()
-    await r.delete(key)
-
-
-async def cache_delete_pattern(pattern: str) -> None:
-    r = await get_redis()
-    keys = await r.keys(pattern)
-    if keys:
-        await r.delete(*keys)
+@router.patch("/{appointment_id}")
+async def update_appointment(appointment_id: UUID, data: AppointmentUpdate, session: AsyncSession = Depends(get_db), current_user=Depends(get_current_owner)):
+    repo = AppointmentRepository(session)
+    return await repo.update(appointment_id, data.model_dump(exclude_none=True))
