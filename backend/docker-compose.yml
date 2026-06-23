@@ -64,6 +64,8 @@ services:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/masterdesk
       REDIS_URL: redis://redis:6379/0
     command: python scripts/bot_manager.py
+    healthcheck:
+      disable: true
     depends_on:
       db:
         condition: service_healthy
