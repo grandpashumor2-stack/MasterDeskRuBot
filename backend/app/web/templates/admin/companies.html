@@ -1,92 +1,162 @@
 {% extends "base.html" %}
 {% block title %}Компании — Admin{% endblock %}
 {% block body %}
-<div class="flex h-screen overflow-hidden">
-  <aside class="w-64 bg-gray-900 flex flex-col flex-shrink-0">
-    <div class="p-5 border-b border-gray-700">
-      <p class="text-white font-bold">⚙️ Admin Panel</p>
+<div x-data="{ open: false }" class="min-h-screen bg-gray-50">
+
+  <!-- MOBILE HEADER -->
+  <header class="md:hidden bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-2">
+      <span class="text-lg">⚙️</span>
+      <span class="font-semibold">Admin Panel</span>
     </div>
-    <nav class="flex-1 p-3 space-y-1">
-      <a href="/admin" class="sidebar-link">📊 Dashboard</a>
-      <a href="/admin/companies" class="sidebar-link active">🏢 Компании</a>
-    </nav>
-    <div class="p-3 border-t border-gray-700">
-      <a href="/logout" class="sidebar-link text-red-400 hover:text-red-300 hover:bg-gray-800">🚪 Выйти</a>
-    </div>
-  </aside>
-  <main class="flex-1 overflow-y-auto p-6">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-gray-900">Компании ({{ companies|length }})</h1>
-    </div>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div class="p-4 border-b">
-        <input type="text" id="search" onkeyup="filterTable()" placeholder="🔍 Поиск..." class="border border-gray-300 rounded-lg px-3 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-blue-500">
+    <button @click="open = !open" class="p-2 rounded-lg bg-gray-700">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </header>
+  <div x-show="open" x-cloak class="md:hidden bg-gray-800 text-white px-4 py-3 space-y-1 z-40">
+    <a href="/admin" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 text-gray-300 text-sm">📊 Dashboard</a>
+    <a href="/admin/companies" class="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm">🏢 Компании</a>
+    <a href="/logout" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-700 text-red-400 text-sm">🚪 Выйти</a>
+  </div>
+
+  <div class="flex h-screen overflow-hidden">
+    <!-- DESKTOP SIDEBAR -->
+    <aside class="hidden md:flex w-64 bg-gray-900 flex-col flex-shrink-0">
+      <div class="p-5 border-b border-gray-700">
+        <p class="text-white font-bold">⚙️ Admin Panel</p>
       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm" id="companiesTable">
-          <thead>
-            <tr class="bg-gray-50 border-b border-gray-100">
-              <th class="text-left px-4 py-3 font-medium text-gray-500">Компания</th>
-              <th class="text-left px-4 py-3 font-medium text-gray-500">Тариф</th>
-              <th class="text-left px-4 py-3 font-medium text-gray-500">Статус</th>
-              <th class="text-left px-4 py-3 font-medium text-gray-500">Диалогов</th>
-              <th class="text-left px-4 py-3 font-medium text-gray-500">Создана</th>
-              <th class="text-left px-4 py-3 font-medium text-gray-500">Действия</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-50">
-            {% for c in companies %}
-            <tr class="hover:bg-gray-50 company-row">
-              <td class="px-4 py-3">
-                <p class="font-medium text-gray-900">{{ c.name }}</p>
-                <p class="text-xs text-gray-400 font-mono">{{ c.slug }}</p>
-                {% if c.phone %}<p class="text-xs text-gray-500">{{ c.phone }}</p>{% endif %}
-              </td>
-              <td class="px-4 py-3">
-                {{ c.subscription.plan.display_name if c.subscription and c.subscription.plan else '—' }}
-              </td>
-              <td class="px-4 py-3">
-                {% if c.subscription %}
-                <span class="px-2 py-0.5 text-xs rounded-full font-medium
-                  {% if c.subscription.status.value == 'active' %}bg-green-100 text-green-700
-                  {% elif c.subscription.status.value == 'trial' %}bg-yellow-100 text-yellow-700
-                  {% elif c.subscription.status.value == 'past_due' %}bg-red-100 text-red-700
-                  {% else %}bg-gray-100 text-gray-500{% endif %}">
-                  {{ c.subscription.status.value }}
-                </span>
-                {% else %}—{% endif %}
-              </td>
-              <td class="px-4 py-3 text-gray-600">
-                {% if c.subscription and c.subscription.plan %}
-                  {{ c.subscription.dialogs_used }}/{{ c.subscription.plan.limits.get('max_dialogs',-1) if c.subscription.plan.limits else '?' }}
-                {% else %}—{% endif %}
-              </td>
-              <td class="px-4 py-3 text-gray-500 text-xs">{{ c.created_at.strftime('%d.%m.%Y') }}</td>
-              <td class="px-4 py-3">
-                <div class="flex gap-2">
-                  <select id="plan-{{ c.id }}" class="text-xs border border-gray-300 rounded px-2 py-1">
-                    {% for plan in plans %}
-                    <option value="{{ plan.name.value }}">{{ plan.display_name }}</option>
-                    {% endfor %}
-                  </select>
-                  <button onclick="activateSub('{{ c.id }}')"
-                    class="text-xs bg-green-100 hover:bg-green-200 text-green-800 px-2 py-1 rounded transition-colors">
-                    Активировать
-                  </button>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <nav class="flex-1 p-3 space-y-1">
+        <a href="/admin" class="sidebar-link">📊 Dashboard</a>
+        <a href="/admin/companies" class="sidebar-link active">🏢 Компании</a>
+      </nav>
+      <div class="p-3 border-t border-gray-700">
+        <a href="/logout" class="sidebar-link text-red-400 hover:text-red-300 hover:bg-gray-800">🚪 Выйти</a>
       </div>
-    </div>
-  </main>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 overflow-y-auto p-4 md:p-6">
+      <h1 class="text-xl md:text-2xl font-bold text-gray-900 mb-4">Компании ({{ companies|length }})</h1>
+
+      <!-- Search -->
+      <div class="mb-4">
+        <input type="text" id="search" onkeyup="filterCards()" placeholder="🔍 Поиск по компаниям..."
+          class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm">
+      </div>
+
+      <!-- MOBILE: Cards -->
+      <div class="md:hidden space-y-3" id="mobileCards">
+        {% for c in companies %}
+        <div class="company-card bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div class="flex items-start justify-between mb-2">
+            <div>
+              <p class="font-semibold text-gray-900">{{ c.name }}</p>
+              <p class="text-xs text-gray-400 font-mono">{{ c.slug }}</p>
+              {% if c.phone %}<p class="text-xs text-gray-500 mt-0.5">📞 {{ c.phone }}</p>{% endif %}
+            </div>
+            {% if c.subscription %}
+            <span class="px-2 py-1 text-xs rounded-full font-medium flex-shrink-0
+              {% if c.subscription.status.value == 'active' %}bg-green-100 text-green-700
+              {% elif c.subscription.status.value == 'trial' %}bg-yellow-100 text-yellow-700
+              {% elif c.subscription.status.value == 'past_due' %}bg-red-100 text-red-700
+              {% else %}bg-gray-100 text-gray-500{% endif %}">
+              {{ {'trial':'Триал','active':'Активна','past_due':'Просрочена','cancelled':'Отменена','expired':'Истекла'}.get(c.subscription.status.value,'—') }}
+            </span>
+            {% else %}
+            <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-500">Нет тарифа</span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-500 mb-3">
+            <span>{{ c.subscription.plan.display_name if c.subscription and c.subscription.plan else 'Без тарифа' }}</span>
+            <span>·</span>
+            <span>{{ c.created_at.strftime('%d.%m.%Y') }}</span>
+            {% if c.subscription and c.subscription.plan %}
+            <span>·</span>
+            <span>{{ c.subscription.dialogs_used }} диал.</span>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="plan-{{ c.id }}" class="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
+              {% for plan in plans %}
+              <option value="{{ plan.name.value }}">{{ plan.display_name }}</option>
+              {% endfor %}
+            </select>
+            <button onclick="activateSub('{{ c.id }}')"
+              class="bg-green-500 hover:bg-green-600 text-white text-sm px-4 py-2 rounded-lg font-medium transition-colors whitespace-nowrap">
+              ✓ Активировать
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+        {% if not companies %}
+        <div class="text-center py-12 text-gray-400">
+          <p class="text-4xl mb-3">🏢</p>
+          <p class="font-medium">Компаний пока нет</p>
+          <p class="text-sm mt-1">Они появятся после регистрации</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- DESKTOP: Table -->
+      <div class="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm" id="companiesTable">
+            <thead>
+              <tr class="bg-gray-50 border-b border-gray-100">
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Компания</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Тариф</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Статус</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Диалогов</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Создана</th>
+                <th class="text-left px-4 py-3 font-medium text-gray-500">Действия</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              {% for c in companies %}
+              <tr class="hover:bg-gray-50 company-row">
+                <td class="px-4 py-3">
+                  <p class="font-medium text-gray-900">{{ c.name }}</p>
+                  <p class="text-xs text-gray-400 font-mono">{{ c.slug }}</p>
+                  {% if c.phone %}<p class="text-xs text-gray-500">{{ c.phone }}</p>{% endif %}
+                </td>
+                <td class="px-4 py-3">{{ c.subscription.plan.display_name if c.subscription and c.subscription.plan else '—' }}</td>
+                <td class="px-4 py-3">
+                  {% if c.subscription %}
+                  <span class="px-2 py-0.5 text-xs rounded-full font-medium
+                    {% if c.subscription.status.value == 'active' %}bg-green-100 text-green-700
+                    {% elif c.subscription.status.value == 'trial' %}bg-yellow-100 text-yellow-700
+                    {% elif c.subscription.status.value == 'past_due' %}bg-red-100 text-red-700
+                    {% else %}bg-gray-100 text-gray-500{% endif %}">
+                    {{ c.subscription.status.value }}
+                  </span>
+                  {% else %}—{% endif %}
+                </td>
+                <td class="px-4 py-3 text-gray-600">
+                  {% if c.subscription and c.subscription.plan %}{{ c.subscription.dialogs_used }}/{{ c.subscription.plan.limits.get('max_dialogs',-1) if c.subscription.plan.limits else '?' }}{% else %}—{% endif %}
+                </td>
+                <td class="px-4 py-3 text-gray-500 text-xs">{{ c.created_at.strftime('%d.%m.%Y') }}</td>
+                <td class="px-4 py-3">
+                  <div class="flex gap-2">
+                    <select id="plan-{{ c.id }}" class="text-xs border border-gray-300 rounded px-2 py-1">
+                      {% for plan in plans %}<option value="{{ plan.name.value }}">{{ plan.display_name }}</option>{% endfor %}
+                    </select>
+                    <button onclick="activateSub('{{ c.id }}')" class="text-xs bg-green-100 hover:bg-green-200 text-green-800 px-2 py-1 rounded transition-colors">Активировать</button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
 </div>
 <script>
 const token = () => document.cookie.split(';').find(c=>c.trim().startsWith('access_token='))?.split('=')[1];
-function filterTable() {
+function filterCards() {
   const q = document.getElementById('search').value.toLowerCase();
+  document.querySelectorAll('.company-card').forEach(r => r.style.display = r.textContent.toLowerCase().includes(q)?'':'none');
   document.querySelectorAll('.company-row').forEach(r => r.style.display = r.textContent.toLowerCase().includes(q)?'':'none');
 }
 async function activateSub(companyId) {
@@ -94,7 +164,7 @@ async function activateSub(companyId) {
   const r = await fetch(`/api/v1/admin/companies/${companyId}/activate?plan_name=${plan}`, {
     method:'POST', headers:{'Authorization':`Bearer ${token()}`}
   });
-  if(r.ok) { alert('Подписка активирована!'); location.reload(); } else alert('Ошибка');
+  if(r.ok) { alert('✅ Подписка активирована!'); location.reload(); } else alert('❌ Ошибка');
 }
 </script>
 {% endblock %}
