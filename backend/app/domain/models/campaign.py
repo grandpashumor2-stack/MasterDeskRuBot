@@ -22,7 +22,7 @@ class Campaign(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[CampaignStatus] = mapped_column(SAEnum(CampaignStatus), default=CampaignStatus.DRAFT)
+    status: Mapped[CampaignStatus] = mapped_column(SAEnum(CampaignStatus, values_callable=lambda x: [e.value for e in x]), default=CampaignStatus.DRAFT)
     # Segment filter: {"min_visits": 2, "last_visit_days": 180, "has_vehicle_make": "Toyota"}
     segment_filter: Mapped[dict] = mapped_column(JSONB, default=dict)
     scheduled_at: Mapped[datetime | None] = mapped_column(DateTime)

@@ -11,6 +11,7 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -42,7 +43,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/masterdesk
+      DATABASE_URL: postgresql+asyncpg://postgres@db:5432/masterdesk
       REDIS_URL: redis://redis:6379/0
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
     ports:
@@ -61,7 +62,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/masterdesk
+      DATABASE_URL: postgresql+asyncpg://postgres@db:5432/masterdesk
       REDIS_URL: redis://redis:6379/0
     command: python scripts/bot_manager.py
     healthcheck:

@@ -52,7 +52,14 @@ async def save_message(session: AsyncSession, company, client, text: str, direct
 @router.message(CommandStart())
 async def cmd_start(message: Message, company: Company, db_session: AsyncSession):
     if not company:
-        await message.answer("Автосервис не найден.")
+        await message.answer(
+            "👋 Добро пожаловать в *МастерДеск*!\n\n"
+            "🔧 Платформа для автоматизации автосервисов\n\n"
+            "Если вы владелец автосервиса — зарегистрируйтесь на нашем сайте "
+            "и подключите бота для своих клиентов.\n\n"
+            "🌐 http://217.12.37.18",
+            parse_mode="Markdown"
+        )
         return
     
     client = await get_or_create_client(db_session, company, message)
