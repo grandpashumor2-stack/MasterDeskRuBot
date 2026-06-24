@@ -58,7 +58,7 @@
       {% endif %}
     </header>
 
-    <main class="flex-1 overflow-y-auto pb-20 px-3 py-4">{% block content_mobile %}{% endblock %}</main>
+    <main class="flex-1 overflow-y-auto pb-20 px-3 py-4">{{ self.content() }}</main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50 shadow-xl">
       <a href="/dashboard" class="bottom-nav-item {% if active=='dashboard' %}active{% endif %}">
