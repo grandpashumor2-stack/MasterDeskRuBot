@@ -19,7 +19,7 @@ class Message(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
     client_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("clients.id", ondelete="SET NULL"))
     telegram_id: Mapped[str | None] = mapped_column(String(50))
-    direction: Mapped[MessageDirection] = mapped_column(SAEnum(MessageDirection))
+    direction: Mapped[MessageDirection] = mapped_column(SAEnum(MessageDirection, values_callable=lambda x: [e.value for e in x]))
     text: Mapped[str] = mapped_column(Text)
     is_ai_response: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)

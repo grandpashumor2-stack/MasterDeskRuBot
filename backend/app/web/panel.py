@@ -42,6 +42,10 @@ async def index(request: Request, session: AsyncSession = Depends(get_db)):
     return templates.TemplateResponse("login.html", {"request": request})
 
 
+@web_router.get("/login", response_class=HTMLResponse)
+async def login_get(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
 @web_router.post("/login")
 async def login_post(
     request: Request,

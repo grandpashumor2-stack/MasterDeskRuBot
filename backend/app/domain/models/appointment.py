@@ -35,8 +35,8 @@ class Appointment(Base):
     
     scheduled_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
-    status: Mapped[AppointmentStatus] = mapped_column(SAEnum(AppointmentStatus), default=AppointmentStatus.PENDING)
-    source: Mapped[AppointmentSource] = mapped_column(SAEnum(AppointmentSource), default=AppointmentSource.TELEGRAM_BOT)
+    status: Mapped[AppointmentStatus] = mapped_column(SAEnum(AppointmentStatus, values_callable=lambda x: [e.value for e in x]), default=AppointmentStatus.PENDING)
+    source: Mapped[AppointmentSource] = mapped_column(SAEnum(AppointmentSource, values_callable=lambda x: [e.value for e in x]), default=AppointmentSource.TELEGRAM_BOT)
     
     client_phone: Mapped[str | None] = mapped_column(String(20))
     client_name: Mapped[str | None] = mapped_column(String(255))

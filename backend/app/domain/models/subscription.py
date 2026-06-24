@@ -33,7 +33,7 @@ class Plan(Base):
     __tablename__ = "plans"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name: Mapped[PlanName] = mapped_column(SAEnum(PlanName), unique=True)
+    name: Mapped[PlanName] = mapped_column(SAEnum(PlanName, values_callable=lambda x: [e.value for e in x]), unique=True)
     display_name: Mapped[str] = mapped_column(String(100))
     monthly_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
     yearly_price: Mapped[Decimal] = mapped_column(Numeric(10, 2))
@@ -53,7 +53,7 @@ class Subscription(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"), unique=True)
     plan_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("plans.id"))
-    status: Mapped[SubscriptionStatus] = mapped_column(SAEnum(SubscriptionStatus), default=SubscriptionStatus.TRIAL)
+    status: Mapped[SubscriptionStatus] = mapped_column(SAEnum(SubscriptionStatus, values_callable=lambda x: [e.value for e in x]), default=SubscriptionStatus.TRIAL)
     is_yearly: Mapped[bool] = mapped_column(Boolean, default=False)
     trial_ends_at: Mapped[datetime | None] = mapped_column(DateTime)
     current_period_start: Mapped[datetime | None] = mapped_column(DateTime)
@@ -74,7 +74,7 @@ class Payment(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     subscription_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("subscriptions.id"))
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2))
-    status: Mapped[PaymentStatus] = mapped_column(SAEnum(PaymentStatus), default=PaymentStatus.PENDING)
+    status: Mapped[PaymentStatus] = mapped_column(SAEnum(PaymentStatus, values_callable=lambda x: [e.value for e in x]), default=PaymentStatus.PENDING)
     payment_method: Mapped[str | None] = mapped_column(String(100))
     external_id: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
