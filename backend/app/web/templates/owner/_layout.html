@@ -1,25 +1,20 @@
 {% extends "base.html" %}
 {% block body %}
 <div x-data="{ open: false }">
-  <!-- DESKTOP (md+) -->
+  <!-- DESKTOP sidebar + content -->
   <div class="hidden md:flex h-screen overflow-hidden">
     <aside class="w-64 bg-gray-900 flex flex-col flex-shrink-0">
       <div class="p-5 border-b border-gray-700">
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
-            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-          </div>
-          <div>
-            <p class="text-white font-semibold text-sm">МастерДеск</p>
-            <p class="text-gray-400 text-xs truncate max-w-32">{{ company.name if company else "" }}</p>
-          </div>
+          <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
+          <div><p class="text-white font-semibold text-sm">МастерДеск</p><p class="text-gray-400 text-xs truncate max-w-36">{{ company.name if company else "" }}</p></div>
         </div>
       </div>
       <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
-        <a href="/dashboard" class="sidebar-link {% if active=="dashboard" %}active{% endif %}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>Dashboard</a>
-        <a href="/appointments" class="sidebar-link {% if active=="appointments" %}active{% endif %}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Записи</a>
-        <a href="/clients" class="sidebar-link {% if active=="clients" %}active{% endif %}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Клиенты</a>
-        <a href="/services-page" class="sidebar-link {% if active=="services" %}active{% endif %}"><svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Услуги</a>
+        <a href="/dashboard" class="sidebar-link {% if active=="dashboard" %}active{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>Dashboard</a>
+        <a href="/appointments" class="sidebar-link {% if active=="appointments" %}active{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Записи</a>
+        <a href="/clients" class="sidebar-link {% if active=="clients" %}active{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Клиенты</a>
+        <a href="/services-page" class="sidebar-link {% if active=="services" %}active{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Услуги</a>
         <a href="/campaigns-page" class="sidebar-link {% if active=="campaigns" %}active{% endif %}">📣 Рассылки</a>
         <a href="/analytics-page" class="sidebar-link {% if active=="analytics" %}active{% endif %}">📊 Аналитика</a>
         <a href="/billing" class="sidebar-link {% if active=="billing" %}active{% endif %}">💳 Тарифы</a>
@@ -33,37 +28,34 @@
     <main class="flex-1 overflow-y-auto"><div class="p-6">{% block content %}{% endblock %}</div></main>
   </div>
 
-  <!-- MOBILE -->
-  <div class="md:hidden min-h-screen flex flex-col">
-    <header class="bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+  <!-- MOBILE layout -->
+  <div class="md:hidden min-h-screen flex flex-col bg-gray-50">
+    <header class="bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-lg">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center"><svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg></div>
         <div><p class="text-sm font-bold">МастерДеск</p><p class="text-xs text-gray-400">{{ company.name if company else "" }}</p></div>
       </div>
       {% if subscription %}<span class="text-xs px-2 py-1 rounded-full {% if subscription.status.value == "trial" %}bg-yellow-500 text-yellow-900{% elif subscription.status.value == "active" %}bg-green-500 text-green-900{% else %}bg-red-500 text-white{% endif %}">{{ {"trial":"Триал","active":"Активен"}.get(subscription.status.value,"?") }}</span>{% endif %}
     </header>
-
-    <main class="flex-1 pb-20 px-3 py-4 overflow-y-auto">
+    <main class="flex-1 overflow-y-auto px-3 py-4 pb-24">
       {% block mobile_content %}{% endblock %}
     </main>
-
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex z-50 shadow-xl">
-      <a href="/dashboard" class="flex flex-col items-center justify-center flex-1 py-2 text-xs {% if active=="dashboard" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>Главная</a>
-      <a href="/appointments" class="flex flex-col items-center justify-center flex-1 py-2 text-xs {% if active=="appointments" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Записи</a>
-      <a href="/clients" class="flex flex-col items-center justify-center flex-1 py-2 text-xs {% if active=="clients" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Клиенты</a>
-      <a href="/services-page" class="flex flex-col items-center justify-center flex-1 py-2 text-xs {% if active=="services" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Услуги</a>
-      <button @click="open=!open" class="flex flex-col items-center justify-center flex-1 py-2 text-xs {% if active in ["campaigns","analytics","billing","settings"] %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5 mb-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>Ещё</button>
+      <a href="/dashboard" class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 {% if active=="dashboard" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h18M3 12h18M3 17h18"/></svg>Главная</a>
+      <a href="/appointments" class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 {% if active=="appointments" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>Записи</a>
+      <a href="/clients" class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 {% if active=="clients" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Клиенты</a>
+      <a href="/services-page" class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 {% if active=="services" %}text-blue-600{% else %}text-gray-400{% endif %}"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Услуги</a>
+      <button @click="open=!open" class="flex flex-col items-center justify-center flex-1 py-2 text-xs gap-0.5 text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>Ещё</button>
     </nav>
-
     <div x-show="open" x-cloak @click="open=false" class="fixed inset-0 bg-black/50 z-40"></div>
-    <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 pb-6 shadow-2xl">
-      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-3"></div>
-      <div class="px-3 space-y-1">
-        <a href="/campaigns-page" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl {% if active=="campaigns" %}bg-blue-50 text-blue-600{% else %}text-gray-700{% endif %}">📣 Рассылки</a>
-        <a href="/analytics-page" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl {% if active=="analytics" %}bg-blue-50 text-blue-600{% else %}text-gray-700{% endif %}">📊 Аналитика</a>
-        <a href="/billing" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl {% if active=="billing" %}bg-blue-50 text-blue-600{% else %}text-gray-700{% endif %}">💳 Тарифы и оплата</a>
-        <a href="/settings-page" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl {% if active=="settings" %}bg-blue-50 text-blue-600{% else %}text-gray-700{% endif %}">⚙️ Настройки</a>
-        <div class="border-t border-gray-100 pt-2 mt-1">
+    <div x-show="open" x-cloak x-transition:enter="transition ease-out duration-200" x-transition:enter-start="translate-y-full" x-transition:enter-end="translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-y-0" x-transition:leave-end="translate-y-full" class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 pb-8 shadow-2xl">
+      <div class="w-10 h-1 bg-gray-200 rounded-full mx-auto mt-3 mb-2"></div>
+      <div class="px-3 space-y-1 pt-1">
+        <a href="/campaigns-page" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700">📣 Рассылки</a>
+        <a href="/analytics-page" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700">📊 Аналитика</a>
+        <a href="/billing" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700">💳 Тарифы и оплата</a>
+        <a href="/settings-page" @click="open=false" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700">⚙️ Настройки</a>
+        <div class="border-t border-gray-100 pt-2">
           <a href="/logout" class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500">🚪 Выйти</a>
         </div>
       </div>
