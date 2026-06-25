@@ -139,4 +139,142 @@
   </div>
 </div>
 {% endblock %}
-{% block mobile_content %}{{ self.content() }}{% endblock %}
+
+{% block mobile_content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+  <p class="text-gray-500 text-sm mt-1">{{ now.strftime('%d %B %Y') }}</p>
+</div>
+
+<!-- Stats cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Записей сегодня</p>
+    <p class="text-3xl font-bold text-gray-900 mt-1">{{ today_count }}</p>
+    <p class="text-xs text-blue-600 mt-1">📅 активных</p>
+  </div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">За месяц</p>
+    <p class="text-3xl font-bold text-gray-900 mt-1">{{ month_count }}</p>
+    <p class="text-xs text-green-600 mt-1">📈 записей</p>
+  </div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Клиентов</p>
+    <p class="text-3xl font-bold text-gray-900 mt-1">{{ total_clients }}</p>
+    <p class="text-xs text-purple-600 mt-1">👥 всего</p>
+  </div>
+  <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Постоянных</p>
+    <p class="text-3xl font-bold text-gray-900 mt-1">{{ returning_clients }}</p>
+    <p class="text-xs text-orange-600 mt-1">🔄 лояльных</p>
+  </div>
+</div>
+
+<!-- Subscription banner -->
+{% if subscription %}
+{% if subscription.status.value == 'trial' %}
+<div class="mb-6 bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-xl p-4 flex items-center justify-between">
+  <div>
+    <p class="font-semibold text-yellow-800">🆓 Пробный период активен</p>
+    {% if subscription.trial_ends_at %}
+    <p class="text-sm text-yellow-700 mt-0.5">Истекает: {{ subscription.trial_ends_at.strftime('%d.%m.%Y') }}</p>
+    {% endif %}
+  </div>
+  <a href="/settings-page" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+    Выбрать тариф
+  </a>
+</div>
+{% elif subscription.status.value == 'past_due' %}
+<div class="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+  <p class="font-semibold text-red-800">⚠️ Подписка просрочена — пополните баланс</p>
+</div>
+{% endif %}
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+  <!-- Today's appointments -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="font-semibold text-gray-900">Записи на сегодня</h2>
+      <a href="/appointments" class="text-xs text-blue-600 hover:underline">Все записи →</a>
+    </div>
+    <div class="divide-y divide-gray-50">
+      {% if today_appointments %}
+        {% for apt in today_appointments %}
+        <div class="px-5 py-3 flex items-start gap-3">
+          <div class="text-sm font-mono font-semibold text-blue-700 w-12 flex-shrink-0 pt-0.5">
+            {{ apt.scheduled_at.strftime('%H:%M') }}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-gray-900 truncate">
+              {{ apt.client_name or (apt.client.full_name if apt.client else 'Клиент') }}
+            </p>
+            {% if apt.service %}
+            <p class="text-xs text-gray-500">{{ apt.service.name }}</p>
+            {% endif %}
+            {% if apt.car_description %}
+            <p class="text-xs text-gray-400">🚗 {{ apt.car_description }}</p>
+            {% endif %}
+          </div>
+          <span class="text-xs px-2 py-0.5 rounded-full flex-shrink-0
+            {% if apt.status.value == 'confirmed' %}bg-green-100 text-green-700
+            {% elif apt.status.value == 'completed' %}bg-gray-100 text-gray-600
+            {% elif apt.status.value == 'cancelled' %}bg-red-100 text-red-600
+            {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+            {{ {'pending':'Ожидает','confirmed':'Подтверждён','in_progress':'В работе','completed':'Готово','cancelled':'Отменён'}.get(apt.status.value, apt.status.value) }}
+          </span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="px-5 py-8 text-center text-gray-400">
+          <p class="text-2xl mb-2">📅</p>
+          <p class="text-sm">На сегодня записей нет</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Quick actions + Bot setup -->
+  <div class="space-y-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <h2 class="font-semibold text-gray-900 mb-4">Быстрые действия</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <a href="/appointments" class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+          <span class="text-xl">📅</span>
+          <span class="text-sm font-medium text-blue-900">Новая запись</span>
+        </a>
+        <a href="/clients" class="flex items-center gap-2 p-3 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors">
+          <span class="text-xl">👥</span>
+          <span class="text-sm font-medium text-purple-900">Клиенты</span>
+        </a>
+        <a href="/services-page" class="flex items-center gap-2 p-3 bg-green-50 rounded-lg hover:bg-green-100 transition-colors">
+          <span class="text-xl">🔧</span>
+          <span class="text-sm font-medium text-green-900">Услуги</span>
+        </a>
+        <a href="/campaigns-page" class="flex items-center gap-2 p-3 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors">
+          <span class="text-xl">📢</span>
+          <span class="text-sm font-medium text-orange-900">Рассылка</span>
+        </a>
+      </div>
+    </div>
+
+    {% if company %}
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <h2 class="font-semibold text-gray-900 mb-3">Telegram бот</h2>
+      {% if company.telegram_bot_token %}
+      <div class="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg p-3 mb-3">
+        <span>✅</span>
+        <span class="text-sm font-medium">Бот подключён</span>
+      </div>
+      {% else %}
+      <div class="flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg p-3 mb-3">
+        <span>⚠️</span>
+        <span class="text-sm">Бот не настроен</span>
+      </div>
+      {% endif %}
+      <p class="text-xs text-gray-500">Настройте токен бота в <a href="/settings-page" class="text-blue-600 hover:underline">Настройках</a></p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
