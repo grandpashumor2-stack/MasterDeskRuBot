@@ -1,7 +1,7 @@
 from datetime import datetime
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, CallbackQuery, Contact
+from aiogram.types import Message, CallbackQuery, Contact, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,6 +21,30 @@ from app.domain.services.subscription_checker import SubscriptionChecker
 from app.infrastructure.ai import service as ai_service
 
 router = Router()
+
+
+def platform_main_keyboard():
+    """Главное меню платформенного бота."""
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🏢 Я владелец автосервиса",
+                url="http://217.12.37.18/register"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="🔧 Я клиент — записаться на ремонт",
+                callback_data="client_search"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="ℹ️ О платформе МастерДеск",
+                callback_data="about_platform"
+            )
+        ]
+    ])
 
 
 async def get_or_create_client(session: AsyncSession, company: Company, message: Message):
@@ -52,18 +76,17 @@ async def save_message(session: AsyncSession, company, client, text: str, direct
 @router.message(CommandStart())
 async def cmd_start(message: Message, company: Company, db_session: AsyncSession):
     if not company:
-        await message.answer(
+        # Платформенный бот — показываем две кнопки
+        text = (
             "👋 Добро пожаловать в *МастерДеск*!\n\n"
-            "🔧 Платформа для автоматизации автосервисов\n\n"
-            "Если вы владелец автосервиса — зарегистрируйтесь на нашем сайте "
-            "и подключите бота для своих клиентов.\n\n"
-            "🌐 http://217.12.37.18",
-            parse_mode="Markdown"
+            "🚀 Платформа для автоматизации автосервисов\n\n"
+            "Кто вы?"
         )
+        await message.answer(text, parse_mode="Markdown", reply_markup=platform_main_keyboard())
         return
-    
+
     client = await get_or_create_client(db_session, company, message)
-    
+
     welcome = (
         f"👋 Добро пожаловать в *{company.name}*!\n\n"
         f"Я — ваш виртуальный администратор. Помогу:\n"
@@ -75,14 +98,72 @@ async def cmd_start(message: Message, company: Company, db_session: AsyncSession
     await message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
 
 
+@router.callback_query(F.data == "about_platform")
+async def about_platform(callback: CallbackQuery):
+    text = (
+        "🚀 *МастерДеск* — платформа для автоматизации автосервисов\n\n"
+        "Что умеет система:\n"
+        "• 🤖 ИИ-администратор отвечает клиентам 24/7\n"
+        "• 📅 Онлайн-запись прямо в Telegram\n"
+        "• 📊 Аналитика и CRM для владельца\n"
+        "• 📱 Рассылки и напоминания клиентам\n\n"
+        "💼 Хотите подключить свой автосервис?\n"
+        "Нажмите кнопку \"Я владелец\" и зарегистрируйтесь!"
+    )
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
+        ])
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "back_to_start")
+async def back_to_start(callback: CallbackQuery):
+    text = (
+        "👋 Добро пожаловать в *МастерДеск*!\n\n"
+        "🚀 Платформа для автоматизации автосервисов\n\n"
+        "Кто вы?"
+    )
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=platform_main_keyboard()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "client_search")
+async def client_search(callback: CallbackQuery):
+    text = (
+        "🔧 *Поиск автосервиса*\n\n"
+        "Введите название автосервиса или напишите \"список\" "
+        "чтобы увидеть все доступные сервисы.\n\n"
+        "Или обратитесь напрямую к боту вашего автосервиса."
+    )
+    await callback.message.edit_text(
+        text,
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
+        ])
+    )
+    await callback.answer()
+
+
 @router.message(F.text == "📋 Наши услуги")
 async def show_services(message: Message, company: Company, db_session: AsyncSession):
+    if not company:
+        await message.answer("Используйте кнопки меню.", reply_markup=platform_main_keyboard())
+        return
     svc_repo = ServiceRepository(db_session)
     services = await svc_repo.get_company_services(company.id)
     if not services:
         await message.answer("Услуги пока не добавлены. Свяжитесь с нами напрямую.")
         return
-    
+
     text = f"🔧 *Услуги {company.name}:*\n\n"
     for svc in services:
         text += f"• *{svc.name}*"
@@ -96,13 +177,16 @@ async def show_services(message: Message, company: Company, db_session: AsyncSes
             elif p.price_type == PriceType.RANGE:
                 text += f" — от {int(p.price_min):,} ₽".replace(",", " ")
         text += "\n"
-    
+
     text += "\nНажмите *Записаться* для выбора услуги и времени."
     await message.answer(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
 
 @router.message(F.text == "📅 Записаться")
 async def start_booking(message: Message, state: FSMContext, company: Company, db_session: AsyncSession):
+    if not company:
+        await message.answer("Используйте кнопки меню.", reply_markup=platform_main_keyboard())
+        return
     checker = SubscriptionChecker(db_session)
     if not await checker.is_active(company.id):
         await message.answer("Сервис временно недоступен. Обратитесь напрямую.")
@@ -123,11 +207,11 @@ async def service_selected(callback: CallbackQuery, state: FSMContext, company: 
     service_id = callback.data.split(":")[1]
     svc_repo = ServiceRepository(db_session)
     service = await svc_repo.get(service_id)
-    
+
     if not service:
         await callback.answer("Услуга не найдена")
         return
-    
+
     await state.update_data(service_id=str(service.id), service_name=service.name, duration=service.duration_minutes)
     await callback.message.edit_text(
         f"✅ Выбрано: *{service.name}*\n\nУкажите марку и модель вашего автомобиля\n(например: Toyota Camry 2019)",
@@ -139,32 +223,31 @@ async def service_selected(callback: CallbackQuery, state: FSMContext, company: 
 @router.message(BookingStates.waiting_car_info)
 async def car_info_received(message: Message, state: FSMContext, company: Company, db_session: AsyncSession):
     await state.update_data(car_info=message.text)
-    
+
     booking_svc = BookingService(db_session)
-    company_full = await db_session.get(Company, company.id)
     from sqlalchemy.orm import selectinload
     from sqlalchemy import select
     result = await db_session.execute(
         select(Company).options(selectinload(Company.working_hours)).where(Company.id == company.id)
     )
     company_with_wh = result.scalar_one_or_none()
-    
+
     data = await state.get_data()
     duration = data.get("duration", 60)
-    
+
     slots = await booking_svc.get_available_slots(
         company.id, company_with_wh.working_hours if company_with_wh else [], duration_minutes=duration
     )
-    
+
     if not slots:
         await message.answer(
-            "К сожалению, свободных мест нет на ближайшие дни.\n"
+            f"К сожалению, свободных мест нет на ближайшие дни.\n"
             f"Позвоните нам: {company.phone or 'номер не указан'}",
             reply_markup=main_menu_keyboard()
         )
         await state.clear()
         return
-    
+
     await state.update_data(available_slots=str(slots))
     msg_text = booking_svc.format_slots_message(slots)
     await message.answer(msg_text, reply_markup=time_slots_keyboard(slots), parse_mode="Markdown")
@@ -194,7 +277,6 @@ async def phone_received(message: Message, state: FSMContext, company: Company, 
 
 @router.message(BookingStates.waiting_phone)
 async def phone_text_received(message: Message, state: FSMContext, company: Company, db_session: AsyncSession):
-    # Accept typed phone number
     phone = message.text.strip()
     if not any(c.isdigit() for c in phone):
         await message.answer("Пожалуйста, введите номер телефона или нажмите кнопку.")
@@ -204,17 +286,14 @@ async def phone_text_received(message: Message, state: FSMContext, company: Comp
 
 async def _create_appointment(message: Message, state: FSMContext, company: Company, db_session: AsyncSession, phone: str):
     data = await state.get_data()
-    
     client = await get_or_create_client(db_session, company, message)
-    # Update phone
     client.phone = phone
-    
+
     apt_repo = AppointmentRepository(db_session)
-    
-    from datetime import datetime
+
     dt_str = f"{data['selected_date']} {data['selected_time']}"
     scheduled_at = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-    
+
     appointment = await apt_repo.create(
         company_id=company.id,
         client_id=client.id,
@@ -226,8 +305,7 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
         car_description=data.get("car_info"),
         source=AppointmentSource.TELEGRAM_BOT,
     )
-    
-    # Log analytics
+
     from app.domain.models.analytics import AnalyticsEvent, EventType
     event = AnalyticsEvent(
         company_id=company.id,
@@ -235,7 +313,7 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
         data={"appointment_id": str(appointment.id), "service": data.get("service_name")},
     )
     db_session.add(event)
-    
+
     confirmation = (
         f"✅ *Запись создана!*\n\n"
         f"📋 Услуга: {data.get('service_name', 'Не указана')}\n"
@@ -246,8 +324,7 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
         f"Ждём вас! 🚗"
     )
     await message.answer(confirmation, parse_mode="Markdown", reply_markup=main_menu_keyboard())
-    
-    # Notify owner if they have a chat_id
+
     if company.telegram_chat_id:
         try:
             await message.bot.send_message(
@@ -261,12 +338,15 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
             )
         except Exception:
             pass
-    
+
     await state.clear()
 
 
 @router.message(F.text == "📞 Контакты")
 async def show_contacts(message: Message, company: Company):
+    if not company:
+        await message.answer("Используйте кнопки меню.", reply_markup=platform_main_keyboard())
+        return
     text = f"📍 *{company.name}*\n\n"
     if company.address:
         text += f"📌 Адрес: {company.address}\n"
@@ -277,35 +357,32 @@ async def show_contacts(message: Message, company: Company):
 
 @router.message()
 async def handle_text(message: Message, company: Company, db_session: AsyncSession):
-    """Main AI handler for all other messages."""
     if not company:
+        await message.answer(
+            "👋 Выберите действие:",
+            reply_markup=platform_main_keyboard()
+        )
         return
-    
+
     checker = SubscriptionChecker(db_session)
-    
-    # Save incoming message
     client = await get_or_create_client(db_session, company, message)
     await save_message(db_session, company, client, message.text, MessageDirection.INCOMING)
-    
-    # Check subscription
+
     if not await checker.is_active(company.id):
         await message.answer("Сервис временно недоступен. Позвоните нам напрямую.")
         return
-    
-    # Check dialog limit for AI
+
     has_ai = await checker.has_feature(company.id, "has_ai")
-    
+
     if has_ai:
         if not await checker.can_use_dialog(company.id):
             sub = await checker.get_subscription(company.id)
             await message.answer(checker.get_upgrade_message(sub.plan.name if sub else "start"))
             return
-    
-    # Get services for context
+
     svc_repo = ServiceRepository(db_session)
     services = await svc_repo.get_company_services(company.id)
-    
-    # Get recent messages for conversation context
+
     from app.domain.models.message import Message as Msg, MessageDirection as MD
     from sqlalchemy import select
     history_result = await db_session.execute(
@@ -316,21 +393,16 @@ async def handle_text(message: Message, company: Company, db_session: AsyncSessi
     )
     history_msgs = list(reversed(history_result.scalars().all()))
     conversation = [
-        {
-            "role": "user" if m.direction == MD.INCOMING else "assistant",
-            "content": m.text
-        }
-        for m in history_msgs[:-1]  # Exclude the last (current) message
+        {"role": "user" if m.direction == MD.INCOMING else "assistant", "content": m.text}
+        for m in history_msgs[:-1]
     ]
-    
-    # Working hours string
-    from app.domain.models.company import WorkingHours
+
     from sqlalchemy.orm import selectinload
     result = await db_session.execute(
         select(Company).options(selectinload(Company.working_hours)).where(Company.id == company.id)
     )
     company_full = result.scalar_one()
-    
+
     days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
     wh_lines = []
     for wh in sorted(company_full.working_hours, key=lambda x: x.day_of_week):
@@ -339,7 +411,7 @@ async def handle_text(message: Message, company: Company, db_session: AsyncSessi
         else:
             wh_lines.append(f"{days[wh.day_of_week]}: Выходной")
     working_hours_str = ", ".join(wh_lines) if wh_lines else "уточняйте по телефону"
-    
+
     if has_ai:
         await message.bot.send_chat_action(message.chat.id, "typing")
         response = await ai_service.generate_response(
@@ -353,7 +425,6 @@ async def handle_text(message: Message, company: Company, db_session: AsyncSessi
         )
         await checker.increment_dialog_count(company.id)
     else:
-        # Basic response without AI
         response = (
             f"Здравствуйте! Я администратор {company.name}.\n\n"
             f"Вы можете:\n"
@@ -362,6 +433,6 @@ async def handle_text(message: Message, company: Company, db_session: AsyncSessi
             f"📞 Позвонить нам: {company.phone or 'уточните номер'}\n\n"
             f"Используйте кнопки меню ниже."
         )
-    
+
     await save_message(db_session, company, client, response, MessageDirection.OUTGOING, is_ai=has_ai)
     await message.answer(response, reply_markup=main_menu_keyboard())
