@@ -84,6 +84,9 @@ async def create_payment(
                            status=SubscriptionStatus.TRIAL)
         session.add(sub)
         await session.flush()
+    else:
+        sub.plan_id = plan.id
+        await session.flush()
 
     session.add(Payment(subscription_id=sub.id, amount=amount,
                         status=PaymentStatus.PENDING, payment_method="yookassa",

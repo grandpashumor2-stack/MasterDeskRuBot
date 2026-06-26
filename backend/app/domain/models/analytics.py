@@ -22,6 +22,6 @@ class AnalyticsEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
-    event_type: Mapped[EventType] = mapped_column(SAEnum(EventType))
+    event_type: Mapped[EventType] = mapped_column(SAEnum(EventType, values_callable=lambda x: [e.value for e in x]))
     data: Mapped[dict] = mapped_column(JSONB, default=dict)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
