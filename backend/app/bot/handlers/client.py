@@ -15,6 +15,7 @@ from app.domain.models.appointment import AppointmentSource
 from app.domain.models.message import MessageDirection
 from app.domain.repositories.client import ClientRepository
 from app.domain.repositories.service import ServiceRepository
+from app.domain.repositories.company import CompanyRepository
 from app.domain.repositories.appointment import AppointmentRepository
 from app.domain.services.booking import BookingService
 from app.domain.services.subscription_checker import SubscriptionChecker
@@ -136,12 +137,37 @@ async def back_to_start(callback: CallbackQuery):
 
 
 @router.callback_query(F.data == "client_search")
-async def client_search(callback: CallbackQuery):
+async def client_search(callback: CallbackQuery, db_session: AsyncSession):
+    from app.domain.repositories.company import CompanyRepository
+    repo = CompanyRepository(db_session)
+    companies = await repo.get_active_companies()
+    if not companies:
+        await callback.message.edit_text(
+            "🔧 Пока нет зарегистрированных автосервисов.\n\nПопробуйте позже.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
+            ])
+        )
+        await callback.answer()
+        return
+    if len(companies) == 1:
+        company = companies[0]
+        client = await get_or_create_client(db_session, company, callback.message)
+        welcome = (
+            f"🔧 Добро пожаловать в *{company.name}*!\n\n"
+            f"Я — ваш виртуальный администратор. Помогу:\n"
+            f"• Узнать цены на услуги\n"
+            f"• Записаться на ремонт\n"
+            f"• Ответить на вопросы\n\n"
+            f"Выберите действие или напишите ваш вопрос 👇"
+        )
+        await callback.message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+        await callback.answer()
+        return
     text = (
-        "🔧 *Поиск автосервиса*\n\n"
-        "Введите название автосервиса или напишите \"список\" "
-        "чтобы увидеть все доступные сервисы.\n\n"
-        "Или обратитесь напрямую к боту вашего автосервиса."
+        "🔧 *Выберите автосервис:*\n\n"
+        + "\n".join([f"• *{c.name}*" + (f" — {c.city}" if c.city else "") for c in companies])
+        + "\n\nНапишите название сервиса или слово *список*"
     )
     await callback.message.edit_text(
         text,
@@ -152,6 +178,24 @@ async def client_search(callback: CallbackQuery):
     )
     await callback.answer()
 
+
+@router.message(F.text.lower() == "список")
+async def list_companies(message: Message, db_session: AsyncSession):
+    repo = CompanyRepository(db_session)
+    companies = await repo.get_active_companies()
+    if not companies:
+        await message.answer("Пока нет зарегистрированных автосервисов.")
+        return
+    text = "🔧 *Доступные автосервисы:*\n\n"
+    for c in companies:
+        text += f"• *{c.name}*"
+        if c.city:
+            text += f" — {c.city}"
+        if c.address:
+            text += f", {c.address}"
+        text += "\n"
+    text += "\nОбратитесь напрямую к боту вашего автосервиса."
+    await message.answer(text, parse_mode="Markdown")
 
 @router.message(F.text == "📋 Наши услуги")
 async def show_services(message: Message, company: Company, db_session: AsyncSession):
@@ -292,7 +336,7 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
     apt_repo = AppointmentRepository(db_session)
 
     dt_str = f"{data['selected_date']} {data['selected_time']}"
-    scheduled_at = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+    scheduled_at = datetime.strptime(dt_str if ":" in dt_str else dt_str + ":00", "%Y-%m-%d %H:%M")
 
     appointment = await apt_repo.create(
         company_id=company.id,
@@ -323,21 +367,18 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
         f"Мы напомним вам за 24 часа и за 2 часа до визита.\n"
         f"Ждём вас! 🚗"
     )
-    await message.answer(confirmation, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+    await message.answer(confirmation, reply_markup=main_menu_keyboard())
 
     if company.telegram_chat_id:
         try:
-            await message.bot.send_message(
-                company.telegram_chat_id,
-                f"🔔 *Новая запись!*\n"
-                f"Клиент: {message.from_user.full_name}\n"
-                f"Услуга: {data.get('service_name')}\n"
-                f"Время: {scheduled_at.strftime('%d.%m.%Y %H:%M')}\n"
-                f"Телефон: {phone}",
-                parse_mode="Markdown"
-            )
-        except Exception:
-            pass
+            name = message.from_user.full_name.replace("_", " ")
+            svc = str(data.get("service_name", "")).replace("_", " ")
+            dt = scheduled_at.strftime("%d.%m.%Y %H:%M")
+            txt = "Новая запись. Клиент: " + name + ". Услуга: " + svc + ". Время: " + dt + ". Тел: " + str(phone)
+            await message.bot.send_message(company.telegram_chat_id, txt)
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Owner notify error: {e}")
 
     await state.clear()
 

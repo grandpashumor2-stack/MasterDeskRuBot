@@ -67,7 +67,7 @@ async def login_post(
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
     redirect_url = "/admin" if user.role.value == "platform_admin" else "/dashboard"
     response = RedirectResponse(redirect_url, status_code=302)
-    response.set_cookie("access_token", token, httponly=True, max_age=86400)
+    response.set_cookie("access_token", token, httponly=False, max_age=86400, samesite="lax")
     return response
 
 

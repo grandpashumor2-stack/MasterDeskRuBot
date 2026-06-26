@@ -36,7 +36,7 @@ class Service(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
-    category: Mapped[ServiceCategory] = mapped_column(SAEnum(ServiceCategory), default=ServiceCategory.OTHER)
+    category: Mapped[ServiceCategory] = mapped_column(SAEnum(ServiceCategory, values_callable=lambda x: [e.value for e in x]), default=ServiceCategory.OTHER)
     duration_minutes: Mapped[int] = mapped_column(Integer, default=60)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Keywords for AI to match client requests
@@ -55,7 +55,7 @@ class ServicePrice(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     service_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("services.id", ondelete="CASCADE"))
-    price_type: Mapped[PriceType] = mapped_column(SAEnum(PriceType), default=PriceType.FIXED)
+    price_type: Mapped[PriceType] = mapped_column(SAEnum(PriceType, values_callable=lambda x: [e.value for e in x]), default=PriceType.FIXED)
     # For FIXED
     fixed_price: Mapped[Decimal | None] = mapped_column(Numeric(10, 2))
     # For RANGE
