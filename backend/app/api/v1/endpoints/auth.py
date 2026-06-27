@@ -62,6 +62,7 @@ async def register(data: UserRegister, session: AsyncSession = Depends(get_db)):
         name=data.company_name,
         slug=data.company_slug,
         phone=data.phone,
+        telegram_bot_token="8743483767:AAE2mOWHN9og5Ahefplv6x_xeelk92FtaF8",
     )
     session.add(company)
     await session.flush()
