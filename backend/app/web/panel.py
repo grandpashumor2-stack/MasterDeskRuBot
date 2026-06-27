@@ -378,7 +378,7 @@ async def admin_dashboard(request: Request, session: AsyncSession = Depends(get_
     # Recent companies
     recent_result = await session.execute(
         select(Company)
-        .options(selectinload(Company.subscription))
+        .options(selectinload(Company.subscription).selectinload(Subscription.plan))
         .order_by(Company.created_at.desc())
         .limit(20)
     )
@@ -415,8 +415,17 @@ async def admin_companies(request: Request, session: AsyncSession = Depends(get_
     plans_result = await session.execute(select(Plan).where(Plan.is_active == True))
     plans = list(plans_result.scalars().all())
 
+    # Считаем клиентов для каждой компании
+    from app.domain.models.client import Client
+    client_counts = {}
+    for c in companies:
+        count = (await session.execute(
+            select(func.count()).where(Client.company_id == c.id)
+        )).scalar()
+        client_counts[str(c.id)] = count
+
     return templates.TemplateResponse("admin/companies.html", {
-        "request": request, "user": user, "companies": companies, "plans": plans
+        "request": request, "user": user, "companies": companies, "plans": plans, "client_counts": client_counts
     })
 
 
