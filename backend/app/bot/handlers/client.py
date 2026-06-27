@@ -197,6 +197,19 @@ async def list_companies(message: Message, db_session: AsyncSession):
     text += "\nОбратитесь напрямую к боту вашего автосервиса."
     await message.answer(text, parse_mode="Markdown")
 
+@router.message(F.text == "🏠 Главное меню")
+async def go_home(message: Message, state: FSMContext, company: Company):
+    await state.clear()
+    if not company:
+        await message.answer("Выберите действие:", reply_markup=platform_main_keyboard())
+        return
+    welcome = (
+        f"🔧 Добро пожаловать в *{company.name}*!\n\n"
+        f"Я — ваш виртуальный администратор.\n"
+        f"Выберите действие или напишите ваш вопрос 👇"
+    )
+    await message.answer(welcome, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+
 @router.message(F.text == "📋 Наши услуги")
 async def show_services(message: Message, company: Company, db_session: AsyncSession):
     if not company:

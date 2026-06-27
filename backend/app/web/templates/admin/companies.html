@@ -53,6 +53,7 @@
               <p class="font-semibold text-gray-900">{{ c.name }}</p>
               <p class="text-xs text-gray-400 font-mono">{{ c.slug }}</p>
               {% if c.phone %}<p class="text-xs text-gray-500 mt-0.5">📞 {{ c.phone }}</p>{% endif %}
+              <p class="text-xs text-blue-600 mt-0.5">👥 {{ client_counts.get(c.id|string, 0) }} клиентов</p>
             </div>
             {% if c.subscription %}
             <span class="px-2 py-1 text-xs rounded-full font-medium flex-shrink-0
@@ -134,6 +135,7 @@
                 <td class="px-4 py-3 text-gray-600">
                   {% if c.subscription and c.subscription.plan %}{{ c.subscription.dialogs_used }}/{{ c.subscription.plan.limits.get('max_dialogs',-1) if c.subscription.plan.limits else '?' }}{% else %}—{% endif %}
                 </td>
+                <td class="px-4 py-3 text-gray-600 text-sm">👥 {{ client_counts.get(c.id|string, 0) }}</td>
                 <td class="px-4 py-3 text-gray-500 text-xs">{{ c.created_at.strftime('%d.%m.%Y') }}</td>
                 <td class="px-4 py-3">
                   <div class="flex gap-2">
