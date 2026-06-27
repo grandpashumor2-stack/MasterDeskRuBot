@@ -204,7 +204,8 @@ async def appointments_page(request: Request, session: AsyncSession = Depends(ge
     )
     appointments = list(result.scalars().all())
     return templates.TemplateResponse("owner/appointments.html", {
-        "request": request, "user": user, "appointments": appointments, "now": now
+        "request": request, "user": user, "appointments": appointments, "now": now,
+        "services": await __import__("app.domain.repositories.service", fromlist=["ServiceRepository"]).ServiceRepository(session).get_company_services(user.company_id)
     })
 
 

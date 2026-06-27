@@ -89,3 +89,25 @@ async def appointment_stats(
 ):
     repo = AppointmentRepository(session)
     return await repo.get_stats(company_id, days=days)
+
+@router.post("")
+async def create_appointment(
+    data: AppointmentCreate,
+    session: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_owner),
+):
+    repo = AppointmentRepository(session)
+    from app.domain.models.appointment import AppointmentSource
+    apt = await repo.create(
+        company_id=current_user.company_id,
+        client_id=None,
+        service_id=data.service_id,
+        scheduled_at=data.scheduled_at,
+        duration_minutes=60,
+        client_phone=data.client_phone,
+        client_name=data.client_name,
+        car_description=data.car_description,
+        source=AppointmentSource.WEB_PANEL,
+    )
+    return apt
+

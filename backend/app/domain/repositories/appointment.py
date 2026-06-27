@@ -12,6 +12,28 @@ class AppointmentRepository(BaseRepository[Appointment]):
     def __init__(self, session: AsyncSession):
         super().__init__(Appointment, session)
 
+
+    async def create(self, company_id, client_id, service_id, scheduled_at,
+                     duration_minutes=60, client_phone=None, client_name=None,
+                     car_description=None, source=None) -> Appointment:
+        from app.domain.models.appointment import AppointmentStatus
+        appointment = Appointment(
+            company_id=company_id,
+            client_id=client_id,
+            service_id=service_id,
+            scheduled_at=scheduled_at,
+            duration_minutes=duration_minutes,
+            client_phone=client_phone,
+            client_name=client_name,
+            car_description=car_description,
+            source=source,
+            status=AppointmentStatus.PENDING,
+        )
+        self.session.add(appointment)
+        await self.session.commit()
+        await self.session.refresh(appointment)
+        return appointment
+
     async def get_company_appointments(
         self, company_id: uuid.UUID,
         status: Optional[AppointmentStatus] = None,
