@@ -226,6 +226,35 @@ async def show_services(message: Message, company: Company, db_session: AsyncSes
     await message.answer(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
 
+
+@router.message(F.text == "💰 Цены")
+async def show_prices(message: Message, company: Company, db_session: AsyncSession):
+    if not company:
+        await message.answer("Используйте кнопки меню.", reply_markup=platform_main_keyboard())
+        return
+    svc_repo = ServiceRepository(db_session)
+    services = await svc_repo.get_company_services(company.id)
+    if not services:
+        await message.answer("Прайс-лист пока не добавлен. Свяжитесь с нами напрямую.")
+        return
+    from app.domain.models.service import PriceType
+    text = f"💰 *Прайс-лист {company.name}:*\n\n"
+    for svc in services:
+        text += f"• *{svc.name}*"
+        if svc.duration_minutes:
+            text += f" ({svc.duration_minutes} мин)"
+        if svc.prices:
+            p = svc.prices[0]
+            if p.price_type == PriceType.FIXED and p.fixed_price:
+                text += f" — {int(p.fixed_price):,} ₽".replace(",", " ")
+            elif p.price_type == PriceType.RANGE and p.price_min:
+                text += f" — от {int(p.price_min):,} ₽".replace(",", " ")
+            elif p.price_type == PriceType.ON_REQUEST:
+                text += " — по запросу"
+        text += "\n"
+    text += "\n📅 Записаться на ремонт — нажмите *Записаться*"
+    await message.answer(text, parse_mode="Markdown")
+
 @router.message(F.text == "📅 Записаться")
 async def start_booking(message: Message, state: FSMContext, company: Company, db_session: AsyncSession):
     if not company:
@@ -360,6 +389,7 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
         make = parts[0] if parts else None
         model = ' '.join(parts[1:-1]) if year and len(parts)>2 else ' '.join(parts[1:]) if len(parts)>1 else None
         db_session.add(Vehicle(client_id=client.id, make=make, model=model, year=year))
+        await db_session.commit()
     appointment = appointment  # already created
 
     from app.domain.models.analytics import AnalyticsEvent, EventType
@@ -408,6 +438,20 @@ async def show_contacts(message: Message, company: Company):
     await message.answer(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
 
+@router.message(F.text == "❓  Задать вопрос")
+async def ask_question(message: Message, company: Company):
+    if not company:
+        await message.answer("Используйте кнопки меню.", reply_markup=platform_main_keyboard())
+        return
+    await message.answer(
+        f"Здравствуйте! Я администратор {company.name}.\n\n"
+        f"Вы можете:\n"
+        f"📋 Посмотреть услуги\n"
+        f"📅 Записаться на ремонт\n"
+        f"📞 Позвонить нам: {company.phone or 'уточните номер'}\n\n"
+        f"Используйте кнопки меню ниже."
+    )
+
 @router.message()
 async def handle_text(message: Message, company: Company, db_session: AsyncSession):
     if not company:
@@ -425,7 +469,7 @@ async def handle_text(message: Message, company: Company, db_session: AsyncSessi
         await message.answer("Сервис временно недоступен. Позвоните нам напрямую.")
         return
 
-    has_ai = await checker.has_feature(company.id, "has_ai")
+    has_ai = False  # AI disabled until ANTHROPIC_API_KEY is set
 
     if has_ai:
         if not await checker.can_use_dialog(company.id):
