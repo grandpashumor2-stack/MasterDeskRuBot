@@ -332,6 +332,8 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
     data = await state.get_data()
     client = await get_or_create_client(db_session, company, message)
     client.phone = phone
+    client.visit_count = (client.visit_count or 0) + 1
+    client.last_visit_at = datetime.utcnow()
 
     apt_repo = AppointmentRepository(db_session)
 
@@ -349,6 +351,16 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
         car_description=data.get("car_info"),
         source=AppointmentSource.TELEGRAM_BOT,
     )
+    # Сохраняем автомобиль клиента
+    car_info = data.get('car_info', '')
+    if car_info and client:
+        from app.domain.models.client import Vehicle
+        parts = car_info.split()
+        year = next((int(p) for p in parts if p.isdigit() and len(p)==4), None)
+        make = parts[0] if parts else None
+        model = ' '.join(parts[1:-1]) if year and len(parts)>2 else ' '.join(parts[1:]) if len(parts)>1 else None
+        db_session.add(Vehicle(client_id=client.id, make=make, model=model, year=year))
+    appointment = appointment  # already created
 
     from app.domain.models.analytics import AnalyticsEvent, EventType
     event = AnalyticsEvent(
