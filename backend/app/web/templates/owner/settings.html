@@ -1,6 +1,24 @@
 {% extends "owner/_layout.html" %}
 {% set active = "settings" %}
-{% block title %}Настройки — AutoService AI{% endblock %}
+{% block title %}Настройки — AutoService AI<script>
+function copyLink(text) {
+  const el = document.createElement("textarea");
+  el.value = text;
+  el.style.position = "fixed";
+  el.style.opacity = "0";
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  try {
+    document.execCommand("copy");
+    alert("Ссылка скопирована!");
+  } catch(e) {
+    prompt("Скопируйте ссылку:", text);
+  }
+  document.body.removeChild(el);
+}
+</script>
+{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold text-gray-900 mb-6">Настройки</h1>
 
@@ -29,30 +47,30 @@
     </div>
   </div>
 
-  <!-- Telegram bot -->
+    <!-- Telegram bot -->
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="font-semibold text-gray-900 mb-1">Telegram бот</h2>
-    <p class="text-sm text-gray-500 mb-4">Создайте бота через <a href="https://t.me/BotFather" target="_blank" class="text-blue-600 hover:underline">@BotFather</a> и вставьте токен сюда.</p>
-    {% if company and company.telegram_bot_token %}
-    <div class="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-      <span class="text-green-600">✅</span>
-      <span class="text-sm text-green-800 font-medium">Бот подключён</span>
-      <span class="text-xs text-green-600 ml-auto font-mono">{{ company.telegram_bot_token[:10] }}...</span>
+    <p class="text-sm text-gray-500 mb-3">Ваши клиенты могут найти вас в боте <a href="https://t.me/MasterDeskRuBot" target="_blank" class="text-blue-600 hover:underline">@MasterDeskRuBot</a> по уникальному коду:</p>
+    <div class="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div>
+        <p class="text-xs text-blue-600 font-medium mb-1">Код вашего автосервиса</p>
+        <p class="text-2xl font-bold text-blue-800 font-mono">{{ company.slug }}</p>
+      </div>
+      <button onclick="navigator.clipboard.writeText('{{ company.slug }}').then(()=>alert('Скопировано!'))" class="ml-auto bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded-lg">Копировать</button>
     </div>
-    {% endif %}
-    <div class="flex gap-3">
-      <input id="botToken" type="text" placeholder="1234567890:AAFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono">
-      <button onclick="saveBotToken()" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors whitespace-nowrap">Сохранить токен</button>
+    <p class="text-xs text-gray-400 mb-3">Поделитесь этой ссылкой с клиентами — они сразу попадут в ваш сервис:</p>
+    <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
+      <input id="botLink" type="text" readonly value="https://t.me/MasterDeskRuBot?start={{ company.slug }}" onclick="this.select()" class="text-sm text-gray-700 font-mono flex-1 bg-transparent outline-none cursor-pointer">
+      <button onclick="var el=document.getElementById('botLink');el.select();el.setSelectionRange(0,999);document.execCommand('copy');alert('Скопировано!')" class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1.5 rounded-lg flex-shrink-0">Копировать</button>
     </div>
-    <div class="mt-3">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Ваш Telegram ID для уведомлений</label>
+    <div class="mt-4">
+      <label class="block text-sm font-medium text-gray-700 mb-1">Ваш Telegram ID для уведомлений о записях</label>
       <div class="flex gap-3">
         <input id="chatId" type="text" value="{{ company.telegram_chat_id or '' }}" placeholder="Узнайте через @userinfobot" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         <button onclick="saveChatId()" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Сохранить</button>
       </div>
     </div>
   </div>
-
   <!-- Working hours -->
   <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
     <h2 class="font-semibold text-gray-900 mb-4">Рабочие часы</h2>

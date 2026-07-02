@@ -1,21 +1,19 @@
 {% extends "base.html" %}
 {% block body %}
 <div x-data="{ open: false }" class="flex h-screen overflow-hidden">
-  <div x-show="open" @click="open = false" x-cloak
-    class="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"></div>
-  <aside :class="open ? 'translate-x-0' : '-translate-x-full'"
-    class="fixed lg:static lg:translate-x-0 z-30 w-64 h-full bg-gray-900 flex flex-col transition-transform duration-200">
+  <div x-show="open" @click="open = false" x-cloak class="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"></div>
+  <aside :class="open ? 'translate-x-0' : '-translate-x-full'" class="fixed lg:static lg:translate-x-0 z-30 w-64 h-full bg-gray-900 flex flex-col flex-shrink-0 transition-transform duration-200">
     <div class="p-5 border-b border-gray-700">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
+        <a href="/dashboard" class="flex items-center gap-3 hover:opacity-80">
           <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </div>
           <div>
             <p class="text-white font-semibold text-sm">AutoService AI</p>
-            <p class="text-gray-400 text-xs">{{ company.name if company else "" }}</p>
+            <p class="text-gray-400 text-xs">{{ company.name if company else '' }}</p>
           </div>
-        </div>
+        </a>
         <button @click="open = false" class="lg:hidden text-gray-400 hover:text-white p-1">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
         </button>
@@ -35,9 +33,9 @@
       {% if subscription %}
       <div class="mb-3 px-3 py-2 bg-gray-800 rounded-lg">
         <p class="text-xs text-gray-400">Тариф</p>
-        <p class="text-sm font-medium text-white">{{ subscription.plan.display_name if subscription.plan else "—" }}</p>
-        {% if subscription.status.value == "trial" %}<p class="text-xs text-yellow-400">🆓 Пробный период</p>
-        {% elif subscription.status.value == "active" %}<p class="text-xs text-green-400">✅ Активна</p>
+        <p class="text-sm font-medium text-white">{{ subscription.plan.display_name if subscription.plan else '—' }}</p>
+        {% if subscription.status.value == 'trial' %}<p class="text-xs text-yellow-400">🆓 Пробный период</p>
+        {% elif subscription.status.value == 'active' %}<p class="text-xs text-green-400">✅ Активна</p>
         {% else %}<p class="text-xs text-red-400">⚠️ {{ subscription.status.value }}</p>{% endif %}
       </div>
       {% endif %}
@@ -49,8 +47,11 @@
       <button @click="open = true" class="p-2 rounded-lg text-gray-600 hover:bg-gray-100">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
-      <span class="text-sm font-semibold text-gray-800">{{ company.name if company else "AutoService AI" }}</span>
-      <a href="/billing" class="text-xs text-blue-600 font-medium">{% if subscription and subscription.status.value == "trial" %}🆓{% endif %}</a>
+      <span class="text-sm font-semibold text-gray-800">{{ company.name if company else 'AutoService AI' }}</span>
+      <div class="flex gap-2">
+        <a href="/dashboard" class="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center text-lg hover:bg-blue-200 transition-colors">🏠</a>
+        <a href="/settings-page" class="w-9 h-9 bg-purple-100 rounded-xl flex items-center justify-center text-lg hover:bg-purple-200 transition-colors">⚙️</a>
+      </div>
     </header>
     <div class="p-4 lg:p-6 flex-1">{% block content %}{% endblock %}</div>
   </main>

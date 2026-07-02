@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.bot.states.booking import BookingStates
 from app.bot.keyboards.client import (
     main_menu_keyboard, services_keyboard,
-    time_slots_keyboard, confirm_booking_keyboard, share_phone_keyboard
+    time_slots_keyboard, confirm_booking_keyboard, share_phone_keyboard,
+    calendar_keyboard, day_time_slots_keyboard
 )
 from app.domain.models.company import Company
 from app.domain.models.appointment import AppointmentSource
@@ -75,15 +76,36 @@ async def save_message(session: AsyncSession, company, client, text: str, direct
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, company: Company, db_session: AsyncSession):
+async def cmd_start(message: Message, state: FSMContext, company: Company, db_session: AsyncSession):
     if not company:
-        # Платформенный бот — показываем две кнопки
-        text = (
+        # Проверяем deep link параметр (/start masterdesk1)
+        args = message.text.split()[1] if message.text and len(message.text.split()) > 1 else None
+        if args:
+            from app.domain.repositories.company import CompanyRepository
+            repo = CompanyRepository(db_session)
+            found = await repo.get_by_slug(args.lower())
+            if found:
+                await state.clear()
+                await state.update_data(company_slug=args.lower())
+                client = await get_or_create_client(db_session, found, message)
+                welcome = (
+                    f"👋 Добро пожаловать в *{found.name}*!\n\n"
+                    f"Я — ваш виртуальный администратор. Помогу:\n"
+                    f"• Узнать цены на услуги\n"
+                    f"• Записаться на ремонт\n"
+                    f"• Ответить на вопросы\n\n"
+                    f"Выберите действие или напишите ваш вопрос ⬇️"
+                )
+                await message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
+                return
+        await state.clear()
+        await message.answer(
             "👋 Добро пожаловать в *МастерДеск*!\n\n"
-            "🚀 Платформа для автоматизации автосервисов\n\n"
-            "Кто вы?"
+            "Для начала работы используйте ссылку от вашего автосервиса.\n"
+            "Или введите код автосервиса:",
+            parse_mode="Markdown"
         )
-        await message.answer(text, parse_mode="Markdown", reply_markup=platform_main_keyboard())
+        await state.set_state(BookingStates.waiting_company_code)
         return
 
     client = await get_or_create_client(db_session, company, message)
@@ -196,6 +218,31 @@ async def list_companies(message: Message, db_session: AsyncSession):
         text += "\n"
     text += "\nОбратитесь напрямую к боту вашего автосервиса."
     await message.answer(text, parse_mode="Markdown")
+
+
+@router.message(BookingStates.waiting_company_code)
+async def company_code_received(message: Message, state: FSMContext, db_session: AsyncSession):
+    code = message.text.strip().lower()
+    from app.domain.repositories.company import CompanyRepository
+    repo = CompanyRepository(db_session)
+    company = await repo.get_by_slug(code)
+    if not company:
+        await message.answer(
+            "❌ Автосервис с таким кодом не найден.\n"
+            "Проверьте код и попробуйте ещё раз.\n\n"
+            "Код выглядит так: *masterdesk1*",
+            parse_mode="Markdown"
+        )
+        return
+    await state.update_data(company_slug=code)
+    client = await get_or_create_client(db_session, company, message)
+    welcome = (
+        f"✅ Вы выбрали *{company.name}*!\n\n"
+        f"Я — ваш виртуальный администратор.\n"
+        f"Выберите действие или напишите ваш вопрос ⬇️"
+    )
+    await state.clear()
+    await message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
 
 @router.message(F.text == "🏠 Главное меню")
 async def go_home(message: Message, state: FSMContext, company: Company):
@@ -353,6 +400,111 @@ async def slot_selected(callback: CallbackQuery, state: FSMContext):
     )
     await callback.message.answer("👇", reply_markup=share_phone_keyboard())
     await state.set_state(BookingStates.waiting_phone)
+
+
+@router.callback_query(F.data == "other_time", BookingStates.waiting_time_slot)
+async def other_time_requested(callback: CallbackQuery, state: FSMContext):
+    from datetime import date as _date
+    today = _date.today()
+    await callback.message.edit_text(
+        "📅 Выберите дату из календаря:",
+        reply_markup=calendar_keyboard(today.year, today.month, min_date=today)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("calnav:"), BookingStates.waiting_time_slot)
+async def calendar_navigate(callback: CallbackQuery):
+    from datetime import date as _date
+    _, ym = callback.data.split(":")
+    year_str, month_str = ym.split("-")
+    year, month = int(year_str), int(month_str)
+    today = _date.today()
+    await callback.message.edit_text(
+        "📅 Выберите дату из календаря:",
+        reply_markup=calendar_keyboard(year, month, min_date=today)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("calday:"), BookingStates.waiting_time_slot)
+async def calendar_day_selected(callback: CallbackQuery, state: FSMContext, company: Company, db_session: AsyncSession):
+    from datetime import date as _date
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select as _select
+
+    _, date_str = callback.data.split(":")
+    target_date = _date.fromisoformat(date_str)
+
+    result = await db_session.execute(
+        _select(Company).options(selectinload(Company.working_hours)).where(Company.id == company.id)
+    )
+    company_with_wh = result.scalar_one_or_none()
+
+    data = await state.get_data()
+    duration = data.get("duration", 60)
+
+    booking_svc = BookingService(db_session)
+    days_ahead = (target_date - _date.today()).days + 1
+    if days_ahead < 1:
+        days_ahead = 1
+    all_slots = await booking_svc.get_available_slots(
+        company.id,
+        company_with_wh.working_hours if company_with_wh else [],
+        days_ahead=days_ahead,
+        duration_minutes=duration,
+    )
+    times = all_slots.get(target_date, [])
+
+    if not times:
+        await callback.message.edit_text(
+            f"К сожалению, на {target_date.strftime('%d.%m.%Y')} свободных мест нет.\nВыберите другую дату:",
+            reply_markup=calendar_keyboard(target_date.year, target_date.month, min_date=_date.today())
+        )
+        await callback.answer()
+        return
+
+    await callback.message.edit_text(
+        f"📅 Свободное время на {target_date.strftime('%d.%m.%Y')}:",
+        reply_markup=day_time_slots_keyboard(target_date, times, target_date.year, target_date.month)
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "cal_back_to_slots", BookingStates.waiting_time_slot)
+async def cal_back_to_slots(callback: CallbackQuery, state: FSMContext, company: Company, db_session: AsyncSession):
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select as _select
+
+    result = await db_session.execute(
+        _select(Company).options(selectinload(Company.working_hours)).where(Company.id == company.id)
+    )
+    company_with_wh = result.scalar_one_or_none()
+
+    data = await state.get_data()
+    duration = data.get("duration", 60)
+
+    booking_svc = BookingService(db_session)
+    slots = await booking_svc.get_available_slots(
+        company.id, company_with_wh.working_hours if company_with_wh else [], duration_minutes=duration
+    )
+
+    if not slots:
+        await callback.message.edit_text(
+            f"К сожалению, свободных мест нет на ближайшие дни.\nПозвоните нам: {company.phone or 'номер не указан'}"
+        )
+        await state.clear()
+        await callback.answer()
+        return
+
+    msg_text = booking_svc.format_slots_message(slots)
+    await callback.message.edit_text(msg_text, reply_markup=time_slots_keyboard(slots), parse_mode="Markdown")
+    await callback.answer()
+
+
+@router.callback_query(F.data == "noop")
+async def noop_callback(callback: CallbackQuery):
+    await callback.answer()
 
 
 @router.message(F.contact, BookingStates.waiting_phone)

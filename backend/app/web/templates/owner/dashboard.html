@@ -118,24 +118,6 @@
         </a>
       </div>
     </div>
-
-    {% if company %}
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-      <h2 class="font-semibold text-gray-900 mb-3">Telegram бот</h2>
-      {% if company.telegram_bot_token %}
-      <div class="flex items-center gap-2 text-green-700 bg-green-50 rounded-lg p-3 mb-3">
-        <span>✅</span>
-        <span class="text-sm font-medium">Бот подключён</span>
-      </div>
-      {% else %}
-      <div class="flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg p-3 mb-3">
-        <span>⚠️</span>
-        <span class="text-sm">Бот не настроен</span>
-      </div>
-      {% endif %}
-      <p class="text-xs text-gray-500">Настройте токен бота в <a href="/settings-page" class="text-blue-600 hover:underline">Настройках</a></p>
-    </div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}
