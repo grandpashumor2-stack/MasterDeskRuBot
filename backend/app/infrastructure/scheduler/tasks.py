@@ -21,10 +21,13 @@ async def send_reminders():
             if not apt.client or not apt.client.telegram_id:
                 continue
             company = await session.get(Company, apt.company_id)
-            if not company or not company.telegram_bot_token:
+            if not company:
+                continue
+            token = company.telegram_bot_token or settings.BOT_TOKEN
+            if not token:
                 continue
             try:
-                bot = Bot(token=company.telegram_bot_token)
+                bot = Bot(token=token)
                 now = datetime.utcnow()
                 hours_until = (apt.scheduled_at - now).total_seconds() / 3600
 
@@ -72,13 +75,14 @@ async def send_return_campaigns():
         companies = await company_repo.get_active_companies()
 
         for company in companies:
-            if not company.telegram_bot_token:
+            token = company.telegram_bot_token or settings.BOT_TOKEN
+            if not token:
                 continue
             clients = await client_repo.get_clients_for_return_campaign(company.id, days_since_visit=180)
             if not clients:
                 continue
             try:
-                bot = Bot(token=company.telegram_bot_token)
+                bot = Bot(token=token)
                 for client in clients[:10]:
                     text = (
                         f"👋 Здравствуйте, {client.full_name or 'дорогой клиент'}!\n\n"
