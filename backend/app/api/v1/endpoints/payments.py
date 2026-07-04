@@ -148,6 +148,7 @@ async def _on_success(obj: dict):
             sub.is_yearly = yearly
             sub.current_period_start = start
             sub.current_period_end = start + timedelta(days=days)
+            sub.expiry_notified = False
         else:
             sub = Subscription(company_id=uuid.UUID(cid), plan_id=uuid.UUID(pid),
                                status=SubscriptionStatus.ACTIVE, is_yearly=yearly,

@@ -137,6 +137,67 @@ async def reset_monthly_dialog_counts():
         print("Счётчики диалогов сброшены.")
 
 
+async def check_expiring_subscriptions():
+    """Notify company owners 2 days before their subscription/trial ends."""
+    from app.infrastructure.database.connection import AsyncSessionLocal
+    from app.domain.models.subscription import Subscription, SubscriptionStatus
+    from app.domain.models.company import Company
+    from sqlalchemy import select, and_, or_
+    from aiogram import Bot
+
+    async with AsyncSessionLocal() as session:
+        now = datetime.utcnow()
+        window_start = now + timedelta(hours=44)
+        window_end = now + timedelta(hours=52)
+
+        result = await session.execute(
+            select(Subscription).where(
+                and_(
+                    Subscription.expiry_notified == False,
+                    Subscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIAL]),
+                    or_(
+                        and_(
+                            Subscription.status == SubscriptionStatus.ACTIVE,
+                            Subscription.current_period_end.between(window_start, window_end),
+                        ),
+                        and_(
+                            Subscription.status == SubscriptionStatus.TRIAL,
+                            Subscription.trial_ends_at.between(window_start, window_end),
+                        ),
+                    ),
+                )
+            )
+        )
+        subs = list(result.scalars().all())
+
+        for sub in subs:
+            company = await session.get(Company, sub.company_id)
+            if not company or not company.telegram_chat_id:
+                continue
+
+            token = company.telegram_bot_token or settings.BOT_TOKEN
+            if not token:
+                continue
+
+            end_date = sub.current_period_end if sub.status == SubscriptionStatus.ACTIVE else sub.trial_ends_at
+            kind = "пробный период" if sub.status == SubscriptionStatus.TRIAL else "подписка"
+
+            text = (
+                f"Внимание! Ваш(а) {kind} заканчивается {end_date.strftime('%d.%m.%Y')}.\n\n"
+                f"Чтобы не потерять доступ к MasterDesk, продлите подписку в личном кабинете."
+            )
+
+            try:
+                bot = Bot(token=token)
+                await bot.send_message(company.telegram_chat_id, text)
+                await bot.session.close()
+                sub.expiry_notified = True
+            except Exception as e:
+                print(f"Expiry notify error: {e}")
+
+        await session.commit()
+
+
 def setup_scheduler():
     scheduler.add_job(send_reminders, "interval", minutes=15, id="reminders")
     scheduler.add_job(
@@ -145,6 +206,7 @@ def setup_scheduler():
         id="return_campaigns"
     )
     scheduler.add_job(check_expired_subscriptions, "interval", hours=1, id="check_subs")
+    scheduler.add_job(check_expiring_subscriptions, "interval", hours=6, id="check_expiring")
     scheduler.add_job(
         reset_monthly_dialog_counts,
         CronTrigger(day=1, hour=0, minute=5),

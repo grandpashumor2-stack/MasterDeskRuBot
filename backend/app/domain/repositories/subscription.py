@@ -42,20 +42,30 @@ class SubscriptionRepository(BaseRepository[Subscription]):
         return result.scalar()
 
     async def get_mrr(self) -> float:
-        """Calculate Monthly Recurring Revenue."""
+        """Calculate MRR based on the last ACTUALLY PAID payment amount,
+        not the live plan price -- stays correct after price changes."""
+        from app.domain.models.subscription import Payment, PaymentStatus
         result = await self.session.execute(
-            select(Subscription)
-            .options(selectinload(Subscription.plan))
-            .where(Subscription.status == SubscriptionStatus.ACTIVE)
+            select(Subscription).where(Subscription.status == SubscriptionStatus.ACTIVE)
         )
         subs = list(result.scalars().all())
         mrr = 0.0
         for sub in subs:
+            payment_result = await self.session.execute(
+                select(Payment)
+                .where(Payment.subscription_id == sub.id, Payment.status == PaymentStatus.PAID)
+                .order_by(Payment.created_at.desc())
+                .limit(1)
+            )
+            last_payment = payment_result.scalar_one_or_none()
+            if not last_payment:
+                continue
             if sub.is_yearly:
-                mrr += float(sub.plan.yearly_price) / 12
+                mrr += float(last_payment.amount) / 12
             else:
-                mrr += float(sub.plan.monthly_price)
+                mrr += float(last_payment.amount)
         return mrr
+
 
     async def get_expired_trials(self) -> List[Subscription]:
         result = await self.session.execute(

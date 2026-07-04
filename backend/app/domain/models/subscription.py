@@ -61,6 +61,7 @@ class Subscription(Base):
     dialogs_used: Mapped[int] = mapped_column(default=0)
     created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, onupdate=datetime.utcnow)
+    expiry_notified: Mapped[bool] = mapped_column(Boolean, default=False)
 
     company: Mapped["Company"] = relationship(back_populates="subscription")
     plan: Mapped["Plan"] = relationship(back_populates="subscriptions")

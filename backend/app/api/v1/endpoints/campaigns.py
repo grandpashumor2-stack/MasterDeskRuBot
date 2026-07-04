@@ -93,14 +93,18 @@ async def _send_campaign_bg(campaign_id: UUID):
             __import__("app.domain.models.company", fromlist=["Company"]).Company,
             campaign.company_id
         )
-        if not company or not company.telegram_bot_token:
+        if not company:
+            return
+        from app.core.config import settings
+        token = company.telegram_bot_token or settings.BOT_TOKEN
+        if not token:
             return
         
         client_repo = ClientRepository(session)
         clients = await client_repo.get_by_segment(campaign.company_id, campaign.segment_filter)
         
         try:
-            bot = Bot(token=company.telegram_bot_token)
+            bot = Bot(token=token)
             sent = 0
             for client in clients:
                 try:
