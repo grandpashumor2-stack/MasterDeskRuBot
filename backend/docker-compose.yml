@@ -45,7 +45,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:arkYcYwqiPjnDG4pZ3Ajy8QH70cdUc@db:5432/masterdesk
       REDIS_URL: redis://redis:6379/0
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1
     ports:
       - "8000:8000"
     depends_on:

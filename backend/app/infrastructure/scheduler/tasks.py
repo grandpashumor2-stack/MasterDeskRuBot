@@ -198,6 +198,52 @@ async def check_expiring_subscriptions():
         await session.commit()
 
 
+async def check_pending_payments():
+    """Poll YooKassa for status of PENDING payments.
+
+    We don't have HTTPS webhook configured yet (no domain/SSL), so instead
+    of waiting for YooKassa to notify us, we periodically ask YooKassa
+    directly: 'is this payment done yet?' and activate the subscription
+    ourselves if so. Reuses the exact same activation logic as the webhook
+    would have used (_on_success), just triggered differently.
+    """
+    from app.infrastructure.database.connection import AsyncSessionLocal
+    from app.domain.models.subscription import Payment, PaymentStatus
+    from app.api.v1.endpoints.payments import _on_success, _on_fail
+    from sqlalchemy import select
+    import httpx
+
+    if not settings.YOOKASSA_SECRET_KEY:
+        return
+
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(
+            select(Payment).where(Payment.status == PaymentStatus.PENDING)
+        )
+        pending = list(result.scalars().all())
+
+    if not pending:
+        return
+
+    async with httpx.AsyncClient() as client:
+        for payment in pending:
+            try:
+                r = await client.get(
+                    f"https://api.yookassa.ru/v3/payments/{payment.external_id}",
+                    auth=(settings.YOOKASSA_SHOP_ID, settings.YOOKASSA_SECRET_KEY),
+                    timeout=15,
+                )
+                if r.status_code != 200:
+                    continue
+                obj = r.json()
+                if obj.get("status") == "succeeded":
+                    await _on_success(obj)
+                elif obj.get("status") == "canceled":
+                    await _on_fail(obj)
+            except Exception as e:
+                print(f"Payment poll error: {e}")
+
+
 def setup_scheduler():
     scheduler.add_job(send_reminders, "interval", minutes=15, id="reminders")
     scheduler.add_job(
@@ -207,6 +253,7 @@ def setup_scheduler():
     )
     scheduler.add_job(check_expired_subscriptions, "interval", hours=1, id="check_subs")
     scheduler.add_job(check_expiring_subscriptions, "interval", hours=6, id="check_expiring")
+    scheduler.add_job(check_pending_payments, "interval", minutes=3, id="check_payments")
     scheduler.add_job(
         reset_monthly_dialog_counts,
         CronTrigger(day=1, hour=0, minute=5),
