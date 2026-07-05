@@ -36,12 +36,6 @@ def platform_main_keyboard():
         ],
         [
             InlineKeyboardButton(
-                text="🔧 Я клиент — записаться на ремонт",
-                callback_data="client_search"
-            )
-        ],
-        [
-            InlineKeyboardButton(
                 text="ℹ️ О платформе МастерДеск",
                 callback_data="about_platform"
             )
@@ -103,7 +97,8 @@ async def cmd_start(message: Message, state: FSMContext, company: Company, db_se
             "👋 Добро пожаловать в *МастерДеск*!\n\n"
             "Для начала работы используйте ссылку от вашего автосервиса.\n"
             "Или введите код автосервиса:",
-            parse_mode="Markdown"
+            parse_mode="Markdown",
+            reply_markup=platform_main_keyboard()
         )
         await state.set_state(BookingStates.waiting_company_code)
         return

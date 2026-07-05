@@ -74,5 +74,24 @@ async def register(data: UserRegister, session: AsyncSession = Depends(get_db)):
         )
         session.add(sub)
     await session.commit()
+    try:
+        from aiogram import Bot
+        from app.core.config import settings
+        if settings.BOT_TOKEN:
+            notify_bot = Bot(token=settings.BOT_TOKEN)
+            await notify_bot.send_message(
+                6466766416,
+                f"Новая регистрация автосервиса!\n\n"
+                f"Название: {data.company_name}\n"
+                f"Владелец: {data.full_name}\n"
+                f"Email: {data.email}\n"
+                f"Телефон: {data.phone or 'не указан'}\n"
+                f"Код: {slug}"
+            )
+            await notify_bot.session.close()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Registration notify error: {e}")
+
     token = create_access_token({"sub": str(user.id), "role": user.role.value})
     return {"access_token": token, "token_type": "bearer", "company_code": slug}
