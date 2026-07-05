@@ -49,7 +49,7 @@ class BookingService:
     ) -> dict[date, List[time]]:
         """Get available booking slots for next N days."""
         available = {}
-        today = date.today()
+        today = (datetime.utcnow() + timedelta(hours=3)).date()  # МСК
         busy_slots: dict[date, List[datetime]] = {}
 
         for i in range(days_ahead):
@@ -69,9 +69,9 @@ class BookingService:
 
             # Skip past time for today
             if check_date == today:
-                now_time = datetime.now().time()
+                msk_now = datetime.utcnow() + timedelta(hours=3)  # МСК
                 # Add 1 hour buffer
-                buffer = (datetime.now() + timedelta(hours=1)).time()
+                buffer = (msk_now + timedelta(hours=1)).time()
                 free_slots = [s for s in free_slots if s > buffer]
 
             if free_slots:
@@ -88,7 +88,7 @@ class BookingService:
             0: "Понедельник", 1: "Вторник", 2: "Среда",
             3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье"
         }
-        today = date.today()
+        today = (datetime.utcnow() + timedelta(hours=3)).date()  # МСК
         lines = ["📅 Доступное время для записи:\n"]
         for d, times in list(slots.items())[:3]:  # Show max 3 days
             if d == today:

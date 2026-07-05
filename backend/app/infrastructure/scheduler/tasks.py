@@ -28,7 +28,7 @@ async def send_reminders():
                 continue
             try:
                 bot = Bot(token=token)
-                now = datetime.utcnow()
+                now = datetime.utcnow() + timedelta(hours=3)  # scheduled_at хранится как московское время
                 hours_until = (apt.scheduled_at - now).total_seconds() / 3600
 
                 if 22 <= hours_until <= 26 and not apt.reminder_24h_sent:

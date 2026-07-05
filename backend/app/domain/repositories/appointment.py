@@ -56,7 +56,7 @@ class AppointmentRepository(BaseRepository[Appointment]):
         return list(result.scalars().all())
 
     async def get_today_appointments(self, company_id: uuid.UUID) -> List[Appointment]:
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = (datetime.utcnow() + timedelta(hours=3)).replace(hour=0, minute=0, second=0, microsecond=0)
         today_end = today_start + timedelta(days=1)
         return await self.get_company_appointments(company_id, date_from=today_start, date_to=today_end)
 
@@ -78,7 +78,7 @@ class AppointmentRepository(BaseRepository[Appointment]):
 
     async def get_pending_reminders(self) -> List[Appointment]:
         """Get appointments needing reminders."""
-        now = datetime.utcnow()
+        now = datetime.utcnow() + timedelta(hours=3)  # МСК
         # 24h reminder: appointments in 23-25h
         reminder_24h_from = now + timedelta(hours=23)
         reminder_24h_to = now + timedelta(hours=25)

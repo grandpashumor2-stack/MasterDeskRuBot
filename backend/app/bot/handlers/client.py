@@ -399,8 +399,8 @@ async def slot_selected(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "other_time", BookingStates.waiting_time_slot)
 async def other_time_requested(callback: CallbackQuery, state: FSMContext):
-    from datetime import date as _date
-    today = _date.today()
+    from datetime import date as _date, timedelta
+    today = (datetime.utcnow() + timedelta(hours=3)).date()  # МСК
     await callback.message.edit_text(
         "📅 Выберите дату из календаря:",
         reply_markup=calendar_keyboard(today.year, today.month, min_date=today)
@@ -410,11 +410,11 @@ async def other_time_requested(callback: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith("calnav:"), BookingStates.waiting_time_slot)
 async def calendar_navigate(callback: CallbackQuery):
-    from datetime import date as _date
+    from datetime import date as _date, timedelta
     _, ym = callback.data.split(":")
     year_str, month_str = ym.split("-")
     year, month = int(year_str), int(month_str)
-    today = _date.today()
+    today = (datetime.utcnow() + timedelta(hours=3)).date()  # МСК
     await callback.message.edit_text(
         "📅 Выберите дату из календаря:",
         reply_markup=calendar_keyboard(year, month, min_date=today)
@@ -424,7 +424,7 @@ async def calendar_navigate(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("calday:"), BookingStates.waiting_time_slot)
 async def calendar_day_selected(callback: CallbackQuery, state: FSMContext, company: Company, db_session: AsyncSession):
-    from datetime import date as _date
+    from datetime import date as _date, timedelta
     from sqlalchemy.orm import selectinload
     from sqlalchemy import select as _select
 
@@ -440,7 +440,7 @@ async def calendar_day_selected(callback: CallbackQuery, state: FSMContext, comp
     duration = data.get("duration", 60)
 
     booking_svc = BookingService(db_session)
-    days_ahead = (target_date - _date.today()).days + 1
+    days_ahead = (target_date - (datetime.utcnow() + timedelta(hours=3)).date()).days + 1  # МСК
     if days_ahead < 1:
         days_ahead = 1
     all_slots = await booking_svc.get_available_slots(
@@ -454,7 +454,7 @@ async def calendar_day_selected(callback: CallbackQuery, state: FSMContext, comp
     if not times:
         await callback.message.edit_text(
             f"К сожалению, на {target_date.strftime('%d.%m.%Y')} свободных мест нет.\nВыберите другую дату:",
-            reply_markup=calendar_keyboard(target_date.year, target_date.month, min_date=_date.today())
+            reply_markup=calendar_keyboard(target_date.year, target_date.month, min_date=(datetime.utcnow() + timedelta(hours=3)).date())
         )
         await callback.answer()
         return
