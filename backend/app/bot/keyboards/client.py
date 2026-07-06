@@ -27,7 +27,6 @@ def services_keyboard(services: list) -> InlineKeyboardMarkup:
 def time_slots_keyboard(slots: dict[date, List[time]]) -> InlineKeyboardMarkup:
     buttons = []
     today = (datetime.utcnow() + timedelta(hours=3)).date()  # МСК
-    from datetime import timedelta
 
     DAY_LABELS = {0: "Пн", 1: "Вт", 2: "Ср", 3: "Чт", 4: "Пт", 5: "Сб", 6: "Вс"}
     

@@ -384,7 +384,7 @@ async def car_info_received(message: Message, state: FSMContext, company: Compan
 
 @router.callback_query(F.data.startswith("slot:"), BookingStates.waiting_time_slot)
 async def slot_selected(callback: CallbackQuery, state: FSMContext):
-    parts = callback.data.split(":")
+    parts = callback.data.split(":", 2)
     selected_date = parts[1]
     selected_time = parts[2]
     await state.update_data(selected_date=selected_date, selected_time=selected_time)
