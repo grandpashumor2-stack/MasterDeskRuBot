@@ -31,7 +31,7 @@ async def send_reminders():
                 now = datetime.utcnow() + timedelta(hours=3)  # scheduled_at хранится как московское время
                 hours_until = (apt.scheduled_at - now).total_seconds() / 3600
 
-                if 22 <= hours_until <= 26 and not apt.reminder_24h_sent:
+                if 23.83 <= hours_until <= 24.17 and not apt.reminder_24h_sent:
                     text = (
                         f"⏰ *Напоминание о записи*\n\n"
                         f"Завтра в *{apt.scheduled_at.strftime('%H:%M')}* "
@@ -43,7 +43,7 @@ async def send_reminders():
                     await bot.send_message(apt.client.telegram_id, text, parse_mode="Markdown")
                     apt.reminder_24h_sent = True
 
-                elif 1.4 <= hours_until <= 2.6 and not apt.reminder_2h_sent:
+                elif 1.83 <= hours_until <= 2.17 and not apt.reminder_2h_sent:
                     text = (
                         f"🔔 *Через 2 часа!*\n\n"
                         f"Сегодня в *{apt.scheduled_at.strftime('%H:%M')}* "
@@ -245,7 +245,7 @@ async def check_pending_payments():
 
 
 def setup_scheduler():
-    scheduler.add_job(send_reminders, "interval", minutes=15, id="reminders")
+    scheduler.add_job(send_reminders, "interval", minutes=5, id="reminders")
     scheduler.add_job(
         send_return_campaigns,
         CronTrigger(day_of_week="mon", hour=10, minute=0),

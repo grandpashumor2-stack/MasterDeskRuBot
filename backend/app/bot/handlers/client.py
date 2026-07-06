@@ -529,6 +529,25 @@ async def _create_appointment(message: Message, state: FSMContext, company: Comp
     dt_str = f"{data['selected_date']} {data['selected_time']}"
     scheduled_at = datetime.strptime(dt_str if ":" in dt_str else dt_str + ":00", "%Y-%m-%d %H:%M")
 
+    # Защита от двойной записи на одно и то же время
+    from sqlalchemy import select as _select_dup
+    from app.domain.models.appointment import Appointment as _Appointment, AppointmentStatus as _AppointmentStatus
+    existing_result = await db_session.execute(
+        _select_dup(_Appointment).where(
+            _Appointment.company_id == company.id,
+            _Appointment.scheduled_at == scheduled_at,
+            _Appointment.status.notin_([_AppointmentStatus.CANCELLED, _AppointmentStatus.NO_SHOW]),
+        )
+    )
+    if existing_result.scalar_one_or_none():
+        await message.answer(
+            "К сожалению, это время только что заняли. Пожалуйста, выберите другое время: /start → Записаться.",
+            reply_markup=main_menu_keyboard()
+        )
+        await state.clear()
+        return
+
+
     appointment = await apt_repo.create(
         company_id=company.id,
         client_id=client.id,

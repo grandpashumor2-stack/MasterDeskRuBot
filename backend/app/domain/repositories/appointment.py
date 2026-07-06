@@ -80,11 +80,11 @@ class AppointmentRepository(BaseRepository[Appointment]):
         """Get appointments needing reminders."""
         now = datetime.utcnow() + timedelta(hours=3)  # МСК
         # 24h reminder: appointments in 23-25h
-        reminder_24h_from = now + timedelta(hours=23)
-        reminder_24h_to = now + timedelta(hours=25)
+        reminder_24h_from = now + timedelta(hours=23, minutes=50)
+        reminder_24h_to = now + timedelta(hours=24, minutes=10)
         # 2h reminder: appointments in 1.5-2.5h
-        reminder_2h_from = now + timedelta(minutes=90)
-        reminder_2h_to = now + timedelta(minutes=150)
+        reminder_2h_from = now + timedelta(minutes=110)
+        reminder_2h_to = now + timedelta(minutes=130)
 
         result = await self.session.execute(
             select(Appointment)
