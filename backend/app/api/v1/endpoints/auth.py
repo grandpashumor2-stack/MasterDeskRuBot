@@ -15,6 +15,7 @@ class UserRegister(BaseModel):
     full_name: str
     company_name: str
     phone: str | None = None
+    referral_code: str | None = None
 
 class TokenResponse(BaseModel):
     access_token: str

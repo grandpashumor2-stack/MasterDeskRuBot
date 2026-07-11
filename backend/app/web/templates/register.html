@@ -13,6 +13,7 @@
     <div id="error-msg" class="hidden mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm"></div>
     <div id="success-msg" class="hidden mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm"></div>
     <form id="regForm" class="space-y-4">
+    <input type="hidden" id="referral_code" name="referral_code" value="">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Название автосервиса *</label>
         <input type="text" name="company_name" required placeholder="СТО Авторемонт"
@@ -49,6 +50,7 @@
   </div>
 </div>
 <script>
+const _refParam = new URLSearchParams(window.location.search).get('ref'); if (_refParam) { document.getElementById('referral_code').value = _refParam; }
 document.getElementById('regForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const fd = new FormData(e.target);

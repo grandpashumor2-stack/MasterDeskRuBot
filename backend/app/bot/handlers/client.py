@@ -31,7 +31,7 @@ def platform_main_keyboard():
         [
             InlineKeyboardButton(
                 text="🏢 Я владелец автосервиса",
-                url="http://217.12.37.18/register"
+                url="https://master-desk.ru/register"
             )
         ],
         [

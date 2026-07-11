@@ -17,6 +17,7 @@ class Company(Base):
     phone: Mapped[str | None] = mapped_column(String(20))
     address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str | None] = mapped_column(String(100))
+    referral_code: Mapped[str | None] = mapped_column(String(50))
     description: Mapped[str | None] = mapped_column(Text)
     logo_url: Mapped[str | None] = mapped_column(String(500))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
