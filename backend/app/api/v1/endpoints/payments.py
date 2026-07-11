@@ -2,12 +2,10 @@
 import uuid, json
 from datetime import datetime, timedelta
 from decimal import Decimal
-
 from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-
 from app.core.config import settings
 from app.core.security import get_current_owner
 from app.infrastructure.database.connection import get_db
@@ -16,11 +14,8 @@ from app.domain.models.subscription import (
     Invoice, Plan, PlanName
 )
 from app.domain.repositories.subscription import SubscriptionRepository, PlanRepository
-
 router = APIRouter(prefix="/payments", tags=["payments"])
 YOOKASSA_API = "https://api.yookassa.ru/v3"
-
-
 async def _yk_create(amount: Decimal, desc: str, return_url: str, meta: dict) -> dict:
     import httpx
     if not settings.YOOKASSA_SECRET_KEY:
@@ -40,14 +35,27 @@ async def _yk_create(amount: Decimal, desc: str, return_url: str, meta: dict) ->
     if r.status_code != 200:
         raise HTTPException(502, f"ЮKassa error: {r.text}")
     return r.json()
-
-
+async def _yk_get(payment_id: str) -> dict:
+    """Re-fetch a payment directly from YooKassa's API. Used to verify
+    webhook notifications instead of trusting the POST body — anyone who
+    learns the webhook URL could otherwise POST a fake 'succeeded' event
+    and get a free subscription. Returns {} on any failure."""
+    import httpx
+    if not settings.YOOKASSA_SECRET_KEY:
+        return {}
+    async with httpx.AsyncClient() as c:
+        r = await c.get(
+            f"{YOOKASSA_API}/payments/{payment_id}",
+            auth=(settings.YOOKASSA_SHOP_ID, settings.YOOKASSA_SECRET_KEY),
+            timeout=15,
+        )
+    if r.status_code != 200:
+        return {}
+    return r.json()
 class CreatePaymentRequest(BaseModel):
     plan_name: PlanName
     is_yearly: bool = False
-    return_url: str = "https://masterdesk.ru/billing?payment=success"
-
-
+    return_url: str = "https://master-desk.ru/billing?payment=success"
 @router.get("/plans")
 async def get_plans(session: AsyncSession = Depends(get_db)):
     repo = PlanRepository(session)
@@ -56,8 +64,6 @@ async def get_plans(session: AsyncSession = Depends(get_db)):
              "monthly_price": float(p.monthly_price), "yearly_price": float(p.yearly_price),
              "yearly_discount_pct": round((1 - float(p.yearly_price)/(float(p.monthly_price)*12))*100),
              "limits": p.limits, "description": p.description} for p in plans]
-
-
 @router.post("/create")
 async def create_payment(
     data: CreatePaymentRequest,
@@ -67,15 +73,12 @@ async def create_payment(
     plan = await PlanRepository(session).get_by_name(data.plan_name)
     if not plan:
         raise HTTPException(404, "Тариф не найден")
-
     amount = plan.yearly_price if data.is_yearly else plan.monthly_price
     period = "год" if data.is_yearly else "месяц"
     desc   = f"МастерДеск — {plan.display_name} на {period}"
     meta   = {"company_id": str(current_user.company_id), "plan_id": str(plan.id),
               "plan_name": plan.name.value, "is_yearly": str(data.is_yearly)}
-
     yk = await _yk_create(amount, desc, data.return_url, meta)
-
     # Сохранить pending-платёж
     sub_repo = SubscriptionRepository(session)
     sub = await sub_repo.get_by_company(current_user.company_id)
@@ -87,39 +90,44 @@ async def create_payment(
     else:
         sub.plan_id = plan.id
         await session.flush()
-
     session.add(Payment(subscription_id=sub.id, amount=amount,
                         status=PaymentStatus.PENDING, payment_method="yookassa",
                         external_id=yk["id"]))
     await session.commit()
-
     return {"payment_id": yk["id"],
             "confirmation_url": yk["confirmation"]["confirmation_url"],
             "amount": float(amount), "description": desc}
-
-
 @router.post("/webhook/yookassa")
 async def webhook(request: Request, bg: BackgroundTasks,
                   session: AsyncSession = Depends(get_db)):
     """
     Настроить в ЮKassa:
     yookassa.ru → Интеграция → HTTP-уведомления
-    URL: https://ВАШ_ДОМЕН/api/v1/payments/webhook/yookassa
+    URL: https://master-desk.ru/api/v1/payments/webhook/yookassa
+    События: payment.succeeded, payment.canceled
+
+    ВАЖНО: тело этого запроса НЕ считается источником истины. Мы берём
+    из него только id платежа и по этому id переспрашиваем реальный
+    статус напрямую у ЮKassa — так поддельный POST на этот URL не может
+    активировать подписку без настоящей оплаты.
     """
     body = await request.body()
     try:
         event = json.loads(body)
     except Exception:
         raise HTTPException(400, "Invalid JSON")
-
     obj, etype = event.get("object", {}), event.get("event", "")
-    if etype == "payment.succeeded":
-        bg.add_task(_on_success, obj)
-    elif etype == "payment.canceled":
-        bg.add_task(_on_fail, obj)
+    payment_id = obj.get("id")
+    if not payment_id or etype not in ("payment.succeeded", "payment.canceled"):
+        return {"ok": True}
+    verified = await _yk_get(payment_id)
+    if not verified:
+        return {"ok": True}
+    if verified.get("status") == "succeeded":
+        bg.add_task(_on_success, verified)
+    elif verified.get("status") == "canceled":
+        bg.add_task(_on_fail, verified)
     return {"ok": True}
-
-
 async def _on_success(obj: dict):
     from app.infrastructure.database.connection import AsyncSessionLocal
     from app.domain.models.company import Company
@@ -127,17 +135,20 @@ async def _on_success(obj: dict):
     cid     = meta.get("company_id")
     pid     = meta.get("plan_id")
     yearly  = meta.get("is_yearly") == "True"
+    if "amount" not in obj or "value" not in obj.get("amount", {}):
+        print(f"_on_success: payment object missing amount, skipping: {obj.get('id')}")
+        return
     amount  = Decimal(obj["amount"]["value"])
     days    = 365 if yearly else 30
-
     if not cid or not pid:
         return
     async with AsyncSessionLocal() as session:
         r = await session.execute(select(Payment).where(Payment.external_id == obj["id"]))
         p = r.scalar_one_or_none()
+        if p and p.status == PaymentStatus.PAID:
+            return  # уже обработан ранее (повторный вебхук от ЮKassa или гонка с поллингом) — выходим
         if p:
             p.status = PaymentStatus.PAID
-
         sub_repo = SubscriptionRepository(session)
         sub = await sub_repo.get_by_company(uuid.UUID(cid))
         now = datetime.utcnow()
@@ -156,13 +167,11 @@ async def _on_success(obj: dict):
                                current_period_end=now + timedelta(days=days))
             session.add(sub)
             await session.flush()
-
         inv = f"MD-{now.strftime('%Y%m')}-{str(uuid.uuid4())[:6].upper()}"
         session.add(Invoice(subscription_id=sub.id, number=inv, amount=amount,
                             period_start=now, period_end=now+timedelta(days=days),
                             is_paid=True, paid_at=now))
         await session.commit()
-
         # Telegram-уведомление владельцу
         company = await session.get(Company, uuid.UUID(cid))
         plan    = await session.get(Plan, uuid.UUID(pid))
@@ -172,15 +181,13 @@ async def _on_success(obj: dict):
                 bot = Bot(token=company.telegram_bot_token)
                 await bot.send_message(
                     company.telegram_chat_id,
-                    f"✅ *Оплата прошла!*\n\n"
+                    f"✅  *Оплата прошла!*\n\n"
                     f"Тариф: *{plan.display_name if plan else '—'}*\n"
                     f"Сумма: *{int(amount):,} ₽*".replace(",", " "),
                     parse_mode="Markdown")
                 await bot.session.close()
             except Exception:
                 pass
-
-
 async def _on_fail(obj: dict):
     from app.infrastructure.database.connection import AsyncSessionLocal
     async with AsyncSessionLocal() as session:
@@ -189,8 +196,6 @@ async def _on_fail(obj: dict):
         if p:
             p.status = PaymentStatus.FAILED
             await session.commit()
-
-
 @router.get("/history")
 async def history(session: AsyncSession = Depends(get_db),
                   current_user=Depends(get_current_owner)):
@@ -200,8 +205,6 @@ async def history(session: AsyncSession = Depends(get_db),
     r = await session.execute(select(Payment).where(Payment.subscription_id == sub.id)
                               .order_by(Payment.created_at.desc()))
     return list(r.scalars().all())
-
-
 @router.get("/invoices")
 async def invoices(session: AsyncSession = Depends(get_db),
                    current_user=Depends(get_current_owner)):

@@ -253,7 +253,7 @@ def setup_scheduler():
     )
     scheduler.add_job(check_expired_subscriptions, "interval", hours=1, id="check_subs")
     scheduler.add_job(check_expiring_subscriptions, "interval", hours=6, id="check_expiring")
-    scheduler.add_job(check_pending_payments, "interval", minutes=3, id="check_payments")
+    scheduler.add_job(check_pending_payments, "interval", minutes=20, id="check_payments")
     scheduler.add_job(
         reset_monthly_dialog_counts,
         CronTrigger(day=1, hour=0, minute=5),
