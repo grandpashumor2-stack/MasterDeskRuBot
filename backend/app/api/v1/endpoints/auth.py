@@ -71,7 +71,7 @@ async def register(data: UserRegister, session: AsyncSession = Depends(get_db)):
             company_id=company.id,
             plan_id=start_plan.id,
             status=SubscriptionStatus.TRIAL,
-            trial_ends_at=datetime.utcnow() + timedelta(days=7),
+            trial_ends_at=datetime.utcnow() + timedelta(days=30),
         )
         session.add(sub)
     await session.commit()
