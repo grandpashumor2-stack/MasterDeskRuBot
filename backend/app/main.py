@@ -7,7 +7,6 @@ import logging
 from app.core.config import settings
 from app.api.v1.router import api_router
 from app.web.panel import web_router
-from app.infrastructure.scheduler.tasks import setup_scheduler
 from app.infrastructure.database.connection import engine
 from app.domain.models import *  # noqa: ensure all models are loaded
 
@@ -18,13 +17,10 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Starting AutoService AI Manager...")
     
-    # Start background scheduler
-    scheduler = setup_scheduler()
     
     yield
     
     # Shutdown
-    scheduler.shutdown()
     await engine.dispose()
     logger.info("Shutdown complete.")
 
