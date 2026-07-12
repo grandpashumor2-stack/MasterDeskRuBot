@@ -6,8 +6,8 @@ from typing import List
 def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="📋 Наши услуги"), KeyboardButton(text="💰 Цены")],
-            [KeyboardButton(text="📅 Записаться"), KeyboardButton(text="📞 Контакты")],
+            [KeyboardButton(text="📅 Записаться"), KeyboardButton(text="📋 Наши услуги")],
+            [KeyboardButton(text="💰 Цены"), KeyboardButton(text="📞 Контакты")],
         ],
         resize_keyboard=True,
     )

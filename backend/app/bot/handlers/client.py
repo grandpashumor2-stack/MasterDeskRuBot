@@ -92,9 +92,8 @@ async def cmd_start(message: Message, state: FSMContext, company: Company, db_se
                     f"👋 Добро пожаловать в *{found.name}*!\n\n"
                     f"Я — ваш виртуальный администратор. Помогу:\n"
                     f"• Узнать цены на услуги\n"
-                    f"• Записаться на ремонт\n"
-                    f"• Ответить на вопросы\n\n"
-                    f"Выберите действие или напишите ваш вопрос ⬇️"
+                    f"• Записаться на ремонт\n\n"
+                    f"Выберите действие ⬇️"
                 )
                 await message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
                 return
@@ -123,9 +122,8 @@ async def cmd_start(message: Message, state: FSMContext, company: Company, db_se
         f"👋 Добро пожаловать в *{company.name}*!\n\n"
         f"Я — ваш виртуальный администратор. Помогу:\n"
         f"• Узнать цены на услуги\n"
-        f"• Записаться на ремонт\n"
-        f"• Ответить на вопросы\n\n"
-        f"Выберите действие или напишите ваш вопрос ⬇️"
+        f"• Записаться на ремонт\n\n"
+        f"Выберите действие ⬇️"
     )
     await message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
 
@@ -209,9 +207,8 @@ async def client_search(callback: CallbackQuery, db_session: AsyncSession):
             f"🔧 Добро пожаловать в *{company.name}*!\n\n"
             f"Я — ваш виртуальный администратор. Помогу:\n"
             f"• Узнать цены на услуги\n"
-            f"• Записаться на ремонт\n"
-            f"• Ответить на вопросы\n\n"
-            f"Выберите действие или напишите ваш вопрос 👇"
+            f"• Записаться на ремонт\n\n"
+            f"Выберите действие 👇"
         )
         await callback.message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
         await callback.answer()
@@ -269,7 +266,7 @@ async def company_code_received(message: Message, state: FSMContext, db_session:
     welcome = (
         f"✅ Вы выбрали *{company.name}*!\n\n"
         f"Я — ваш виртуальный администратор.\n"
-        f"Выберите действие или напишите ваш вопрос ⬇️"
+        f"Выберите действие ⬇️"
     )
     await state.clear()
     await message.answer(welcome, reply_markup=main_menu_keyboard(), parse_mode="Markdown")
@@ -283,7 +280,7 @@ async def go_home(message: Message, state: FSMContext, company: Company):
     welcome = (
         f"🔧 Добро пожаловать в *{company.name}*!\n\n"
         f"Я — ваш виртуальный администратор.\n"
-        f"Выберите действие или напишите ваш вопрос 👇"
+        f"Выберите действие 👇"
     )
     await message.answer(welcome, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
