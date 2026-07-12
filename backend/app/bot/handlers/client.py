@@ -37,7 +37,7 @@ def platform_main_keyboard():
         [
             InlineKeyboardButton(
                 text="📹 Посмотреть демо",
-                callback_data="demo_platform"
+                url="https://master-desk.ru/demo"
             )
         ],
         [
@@ -146,28 +146,6 @@ async def about_platform(callback: CallbackQuery):
         text,
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
-        ])
-    )
-    await callback.answer()
-
-
-@router.callback_query(F.data == "demo_platform")
-async def demo_platform(callback: CallbackQuery):
-    text = (
-        "🔥 *Как это работает*\n\n"
-        "1️⃣ Клиент пишет в Telegram: «Сколько стоит замена масла на BMW X5?»\n"
-        "2️⃣ МастерДеск сразу находит цену в вашем прайсе и отвечает\n"
-        "3️⃣ Клиент выбирает удобное время и записывается сам, без звонков\n"
-        "4️⃣ За 24 и за 2 часа до визита клиенту приходит напоминание\n"
-        "5️⃣ Через полгода МастерДеск сам напомнит про следующее ТО\n\n"
-        "Всё это работает 24/7 — даже ночью и в выходные, когда администратора нет на месте."
-    )
-    await callback.message.edit_text(
-        text,
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🚗 Подключить автосервис", url="https://master-desk.ru/register")],
             [InlineKeyboardButton(text="◀️ Назад", callback_data="back_to_start")]
         ])
     )
