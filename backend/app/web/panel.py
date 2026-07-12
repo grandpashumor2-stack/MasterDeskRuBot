@@ -83,6 +83,11 @@ async def register_page(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
 
+@web_router.get("/demo", response_class=HTMLResponse)
+async def demo_page(request: Request):
+    return templates.TemplateResponse("demo.html", {"request": request})
+
+
 # ─────────────────────────── OWNER DASHBOARD ───────────────────────────
 
 @web_router.get("/dashboard", response_class=HTMLResponse)

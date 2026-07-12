@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МастерДеск — живая демонстрация</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root{
+    --asphalt: #12141a;
+    --panel: #1c2029;
+    --panel-alt: #262b36;
+    --bubble-client: #33507a;
+    --amber: #ffb020;
+    --teal: #14e0b4;
+    --ink: #f2f1ea;
+    --muted: #8b90a0;
+    --hair: rgba(242,241,234,0.08);
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(255,176,32,0.08), transparent),
+      var(--asphalt);
+    background-image:
+      linear-gradient(rgba(242,241,234,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(242,241,234,0.035) 1px, transparent 1px),
+      radial-gradient(ellipse 900px 500px at 50% -10%, rgba(255,176,32,0.08), transparent);
+    background-size: 42px 42px, 42px 42px, 100% 100%;
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 48px 20px;
+  }
+
+  .stage{
+    width:100%;
+    max-width: 480px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    text-align:center;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    justify-content:center;
+  }
+  .eyebrow::before{
+    content:"";
+    width:7px; height:7px;
+    border-radius:50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px var(--teal);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.35; }
+  }
+
+  h1{
+    font-family:'Big Shoulders Display', sans-serif;
+    font-weight:800;
+    font-size: clamp(30px, 7vw, 44px);
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+  h1 span{ color: var(--amber); }
+
+  .sub{
+    color: var(--muted);
+    font-size: 15px;
+    line-height:1.5;
+    max-width: 380px;
+    margin: 0 0 32px;
+  }
+
+  /* ---- device frame ---- */
+  .device{
+    width:100%;
+    max-width: 380px;
+    background: var(--panel);
+    border-radius: 22px;
+    border: 1px solid var(--hair);
+    box-shadow: 0 30px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.2);
+    overflow:hidden;
+    position:relative;
+  }
+
+  .device-head{
+    padding: 14px 18px 12px;
+    border-bottom: 1px solid var(--hair);
+    text-align:left;
+    position:relative;
+    overflow:hidden;
+  }
+  .device-head-top{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .avatar{
+    width:34px; height:34px;
+    border-radius:50%;
+    background: linear-gradient(145deg, var(--amber), #c97a12);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .avatar svg{ width:18px; height:18px; }
+  .head-name{
+    font-weight:600;
+    font-size:14.5px;
+  }
+  .head-status{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing:0.05em;
+    color: var(--teal);
+    display:flex;
+    align-items:center;
+    gap:5px;
+    margin-top:1px;
+  }
+  .head-status::before{
+    content:"";
+    width:5px; height:5px;
+    border-radius:50%;
+    background: var(--teal);
+  }
+
+  .scan-line{
+    position:absolute;
+    left:0; right:0; top:0;
+    height:2px;
+    background: linear-gradient(90deg, transparent, var(--teal), transparent);
+    opacity:0;
+    transform: translateX(-100%);
+  }
+  .scan-line.active{
+    animation: scan 1.1s linear infinite;
+    opacity:1;
+  }
+  @keyframes scan{
+    0%{ transform: translateX(-100%); }
+    100%{ transform: translateX(100%); }
+  }
+
+  .readout{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top:8px;
+    letter-spacing:0.03em;
+    min-height:14px;
+    text-align:left;
+  }
+  .readout b{ color: var(--amber); font-weight:500; }
+
+  /* ---- chat body ---- */
+  .chat{
+    padding: 18px;
+    min-height: 380px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    text-align:left;
+  }
+
+  .row{
+    display:flex;
+    opacity:0;
+    transform: translateY(6px);
+    animation: rise 0.35s ease forwards;
+  }
+  @keyframes rise{ to{ opacity:1; transform:translateY(0);} }
+
+  .row.client{ justify-content:flex-end; }
+  .row.bot{ justify-content:flex-start; }
+  .row.system{ justify-content:center; margin: 4px 0; }
+
+  .bubble{
+    max-width: 82%;
+    padding: 9px 13px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height:1.42;
+  }
+  .bubble.client{
+    background: var(--bubble-client);
+    border-bottom-right-radius: 4px;
+  }
+  .bubble.bot{
+    background: var(--panel-alt);
+    border-bottom-left-radius: 4px;
+  }
+  .bubble .price{ color: var(--amber); font-weight:600; }
+  .bubble .time{ font-family:'JetBrains Mono', monospace; font-size:12.5px; color: var(--teal); }
+
+  .stamp{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: rgba(242,241,234,0.4);
+    margin-top: 4px;
+    text-align: right;
+  }
+  .row.bot .stamp{ text-align:left; }
+
+  .pill-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-top: 8px;
+  }
+  .pill{
+    font-family:'Inter', sans-serif;
+    font-size: 12.5px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(20,224,180,0.08);
+    border: 1px solid rgba(20,224,180,0.35);
+    color: var(--teal);
+    transition: all 0.2s;
+  }
+  .pill.picked{
+    background: var(--teal);
+    color: #0c1210;
+    font-weight:600;
+  }
+
+  .divider{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing:0.04em;
+    color: var(--muted);
+    background: rgba(242,241,234,0.05);
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .typing{
+    display:inline-flex;
+    gap:4px;
+    padding: 11px 14px;
+    background: var(--panel-alt);
+    border-radius: 14px;
+    border-bottom-left-radius:4px;
+  }
+  .typing i{
+    width:6px; height:6px;
+    border-radius:50%;
+    background: var(--muted);
+    animation: bounce 1s ease-in-out infinite;
+  }
+  .typing i:nth-child(2){ animation-delay:0.15s; }
+  .typing i:nth-child(3){ animation-delay:0.3s; }
+  @keyframes bounce{
+    0%,60%,100%{ transform: translateY(0); opacity:0.4; }
+    30%{ transform: translateY(-4px); opacity:1; }
+  }
+
+  .device-foot{
+    border-top: 1px solid var(--hair);
+    padding: 12px 18px;
+    display:flex;
+    justify-content:center;
+  }
+  .replay{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing:0.05em;
+    color: var(--muted);
+    background:none;
+    border: 1px solid var(--hair);
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    transition: all 0.2s;
+  }
+  .replay:hover{ color: var(--ink); border-color: rgba(242,241,234,0.25); }
+  .replay svg{ width:12px; height:12px; }
+
+  .closing{
+    margin-top: 32px;
+    color: var(--muted);
+    font-size: 14px;
+    max-width: 360px;
+    line-height:1.5;
+  }
+  .closing b{ color: var(--ink); }
+
+  .cta{
+    margin-top:20px;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background: var(--amber);
+    color: #1a1200;
+    font-weight:600;
+    font-size: 14.5px;
+    text-decoration:none;
+    padding: 12px 22px;
+    border-radius: 999px;
+    transition: transform 0.15s;
+  }
+  .cta:hover{ transform: translateY(-1px); }
+
+  @media (prefers-reduced-motion: reduce){
+    .row{ animation: none; opacity:1; transform:none; }
+    .scan-line{ animation: none !important; }
+    .eyebrow::before{ animation:none; }
+    .typing i{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="eyebrow">Живая демонстрация</div>
+  <h1>22:47, суббота.<br>Автосервис закрыт.<br><span>МастерДеск — нет.</span></h1>
+  <p class="sub">Клиент сам выбирает услугу и время в паре нажатий — МастерДеск создаёт запись и присылает напоминание.</p>
+
+  <div class="device">
+    <div class="device-head">
+      <div class="scan-line" id="scanLine"></div>
+      <div class="device-head-top">
+        <div class="avatar">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L4 5v6c0 5 3.5 8.5 8 9 4.5-.5 8-4 8-9V5l-8-3z" stroke="#1a1200" stroke-width="2" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#1a1200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <div class="head-name">МастерДеск</div>
+          <div class="head-status">на связи 24/7</div>
+        </div>
+      </div>
+      <div class="readout" id="readout">СТАТУС: ожидание сообщения</div>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="device-foot">
+      <button class="replay" id="replayBtn">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.5 15a8 8 0 0 0 14.5 3M19.5 9A8 8 0 0 0 5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        смотреть ещё раз
+      </button>
+    </div>
+  </div>
+
+  <p class="closing">Так выглядит запись <b>каждого</b> клиента — днём, ночью, в выходной. Услуга, время и подтверждение — без единого звонка администратору.</p>
+  <a class="cta" href="https://master-desk.ru/register">🚗 Подключить автосервис</a>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const readout = document.getElementById('readout');
+const scanLine = document.getElementById('scanLine');
+const replayBtn = document.getElementById('replayBtn');
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+let timers = [];
+function clearTimers(){ timers.forEach(t => clearTimeout(t)); timers = []; }
+function wait(fn, ms){ const t = setTimeout(fn, reduceMotion ? 0 : ms); timers.push(t); }
+
+function setReadout(text, thinking){
+  readout.innerHTML = 'СТАТУС: ' + text;
+  scanLine.classList.toggle('active', !!thinking);
+}
+
+function addRow(html, cls){
+  const row = document.createElement('div');
+  row.className = 'row ' + cls;
+  row.innerHTML = html;
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  return row;
+}
+
+function addTyping(){
+  return addRow('<div class="typing"><i></i><i></i><i></i></div>', 'bot');
+}
+
+function run(){
+  chat.innerHTML = '';
+  setReadout('ожидание сообщения', false);
+  let t = 0;
+  const step = reduceMotion ? 1 : 900;
+
+  // Клиент нажимает кнопку основного меню (это отправляет текст как обычное сообщение)
+  wait(() => {
+    addRow('<div class="bubble client">📅 Записаться<div class="stamp">22:47</div></div>', 'client');
+  }, t += 400);
+
+  wait(() => setReadout('загрузка списка услуг…', true), t += 500);
+  let typingRow;
+  wait(() => { typingRow = addTyping(); }, t += 500);
+
+  wait(() => {
+    typingRow.remove();
+    setReadout('услуги загружены', false);
+    addRow(`<div class="bubble bot">Выберите услугу:
+      <div class="pill-row">
+        <span class="pill" data-svc="1">Замена масла</span>
+        <span class="pill" data-svc="2">Замена колодок</span>
+        <span class="pill" data-svc="3">Диагностика подвески</span>
+      </div>
+      <div class="stamp">22:47</div></div>`, 'bot');
+  }, t += step);
+
+  wait(() => {
+    const picked = chat.querySelector('[data-svc="1"]');
+    if (picked) picked.classList.add('picked');
+  }, t += step);
+
+  wait(() => setReadout('проверка расписания…', true), t += 500);
+  wait(() => { typingRow = addTyping(); }, t += 400);
+
+  wait(() => {
+    typingRow.remove();
+    setReadout('свободное время найдено', false);
+    addRow(`<div class="bubble bot">🔧 Замена масла<br><br>📅 Сегодня
+      <div class="pill-row">
+        <span class="pill" data-slot="1">15:00</span>
+        <span class="pill" data-slot="2">17:00</span>
+      </div>
+      📅 Завтра
+      <div class="pill-row">
+        <span class="pill" data-slot="3">10:00</span>
+        <span class="pill" data-slot="4">12:00</span>
+      </div>
+      <div class="stamp">22:47</div></div>`, 'bot');
+  }, t += step);
+
+  wait(() => {
+    const picked = chat.querySelector('[data-slot="2"]');
+    if (picked) picked.classList.add('picked');
+    addRow('<div class="row system"><div class="divider">выбрано: сегодня, 17:00</div></div>', 'system');
+  }, t += step);
+
+  wait(() => setReadout('запрос контакта', false), t += 500);
+  wait(() => {
+    addRow(`<div class="bubble bot">Отлично! Остался последний шаг — поделитесь номером телефона, чтобы мастер мог с вами связаться.
+      <div class="pill-row"><span class="pill">📱 Поделиться номером</span></div>
+      <div class="stamp">22:48</div></div>`, 'bot');
+  }, t += 500);
+
+  wait(() => {
+    addRow('<div class="bubble client">📱 Поделиться номером<div class="stamp">22:48</div></div>', 'client');
+  }, t += step);
+
+  wait(() => setReadout('создание записи…', true), t += 500);
+  wait(() => { typingRow = addTyping(); }, t += 400);
+
+  wait(() => {
+    typingRow.remove();
+    setReadout('подтверждение записи', false);
+    addRow(`<div class="bubble bot">Проверьте данные записи:<br>🔧 Замена масла<br>🕔 Сегодня в <span class="time">17:00</span><br>📱 +7 900 •••-••-67
+      <div class="pill-row"><span class="pill" data-confirm="1">✅ Подтвердить</span><span class="pill">❌ Отменить</span></div>
+      <div class="stamp">22:48</div></div>`, 'bot');
+  }, t += step);
+
+  wait(() => {
+    const picked = chat.querySelector('[data-confirm="1"]');
+    if (picked) picked.classList.add('picked');
+  }, t += step);
+
+  wait(() => setReadout('запись создана', false), t += 500);
+  wait(() => {
+    addRow(`<div class="bubble bot">Готово! Запись создана ✅<br>🕔 Сегодня в <span class="time">17:00</span><br>🔧 Замена масла<br><br>Напомним за 2 часа до визита.<div class="stamp">22:48</div></div>`, 'bot');
+  }, t += 500);
+
+  wait(() => {
+    addRow('<div class="row system"><div class="divider">⏰ через 2 часа</div></div>', 'system');
+  }, t += step + 300);
+
+  wait(() => setReadout('отправка напоминания', true), t += 500);
+  wait(() => { typingRow = addTyping(); }, t += 400);
+
+  wait(() => {
+    typingRow.remove();
+    setReadout('напоминание отправлено', false);
+    addRow('<div class="bubble bot">🔔 Ждём вас сегодня в <span class="time">17:00</span>. До встречи!<div class="stamp">15:00</div></div>', 'bot');
+  }, t += step);
+
+  wait(() => {
+    if (!reduceMotion) run();
+  }, t += 3200);
+}
+
+replayBtn.addEventListener('click', () => { clearTimers(); run(); });
+run();
+</script>
+
+</body>
+</html>
