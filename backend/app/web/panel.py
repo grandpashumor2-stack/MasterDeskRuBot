@@ -79,12 +79,18 @@ async def logout():
 
 
 @web_router.get("/register", response_class=HTMLResponse)
-async def register_page(request: Request):
+async def register_page(request: Request, session: AsyncSession = Depends(get_db)):
+    from app.domain.models.marketing import PageEvent
+    session.add(PageEvent(event_type="register_view"))
+    await session.commit()
     return templates.TemplateResponse("register.html", {"request": request})
 
 
 @web_router.get("/demo", response_class=HTMLResponse)
-async def demo_page(request: Request):
+async def demo_page(request: Request, session: AsyncSession = Depends(get_db)):
+    from app.domain.models.marketing import PageEvent
+    session.add(PageEvent(event_type="demo_view"))
+    await session.commit()
     return templates.TemplateResponse("demo.html", {"request": request})
 
 

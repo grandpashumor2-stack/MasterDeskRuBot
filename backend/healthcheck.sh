@@ -96,6 +96,12 @@ else
     ALL_OK=false
 fi
 
+DEMO_VIEWS=$(docker exec masterdesk_db psql -U postgres -d masterdesk -t -A -c "SELECT COUNT(*) FROM page_events WHERE event_type='demo_view' AND created_at > NOW() - INTERVAL '24 hours';" 2>/dev/null)
+REGISTER_VIEWS=$(docker exec masterdesk_db psql -U postgres -d masterdesk -t -A -c "SELECT COUNT(*) FROM page_events WHERE event_type='register_view' AND created_at > NOW() - INTERVAL '24 hours';" 2>/dev/null)
+REGISTRATIONS=$(docker exec masterdesk_db psql -U postgres -d masterdesk -t -A -c "SELECT COUNT(*) FROM page_events WHERE event_type='register_success' AND created_at > NOW() - INTERVAL '24 hours';" 2>/dev/null)
+REPORT="${REPORT}
+Маркетинг за 24ч: демо ${DEMO_VIEWS:-0}, открытий регистрации ${REGISTER_VIEWS:-0}, новых автосервисов ${REGISTRATIONS:-0}
+"
 if [ "$ALL_OK" == true ]; then
     REPORT="${REPORT}
 

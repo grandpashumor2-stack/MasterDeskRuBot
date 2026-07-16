@@ -7,6 +7,7 @@ from .appointment import Appointment
 from .message import Message
 from .campaign import Campaign
 from .analytics import AnalyticsEvent
+from .marketing import PageEvent
 from .subscription import Plan, Subscription, Payment, Invoice
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "Message",
     "Campaign",
     "AnalyticsEvent",
+    "PageEvent",
     "Plan", "Subscription", "Payment", "Invoice",
 ]

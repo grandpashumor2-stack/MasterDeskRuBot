@@ -75,6 +75,9 @@ async def register(data: UserRegister, session: AsyncSession = Depends(get_db)):
         )
         session.add(sub)
     await session.commit()
+    from app.domain.models.marketing import PageEvent
+    session.add(PageEvent(event_type="register_success", referral_code=data.referral_code))
+    await session.commit()
     try:
         from aiogram import Bot
         from app.core.config import settings
