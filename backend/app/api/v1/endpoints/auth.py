@@ -48,6 +48,7 @@ async def register(data: UserRegister, session: AsyncSession = Depends(get_db)):
         name=data.company_name,
         slug=slug,
         phone=data.phone,
+        referral_code=data.referral_code,
     )
     session.add(company)
     await session.flush()
