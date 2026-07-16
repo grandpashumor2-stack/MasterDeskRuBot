@@ -87,6 +87,23 @@ services:
     depends_on:
       db:
         condition: service_healthy
+
+  max_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.max
+    container_name: masterdesk_max_bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:arkYcYwqiPjnDG4pZ3Ajy8QH70cdUc@db:5432/masterdesk
+      REDIS_URL: redis://redis:6379/0
+    command: python scripts/max_bot_manager.py
+    healthcheck:
+      disable: true
+    depends_on:
+      db:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
