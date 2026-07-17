@@ -18,6 +18,7 @@ class AppointmentStatus(str, enum.Enum):
 
 class AppointmentSource(str, enum.Enum):
     TELEGRAM_BOT = "telegram_bot"
+    MAX_BOT = "max_bot"
     WEB_PANEL = "web_panel"
     PHONE = "phone"
     WALK_IN = "walk_in"
