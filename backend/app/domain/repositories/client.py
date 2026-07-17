@@ -17,13 +17,14 @@ class ClientRepository(BaseRepository[Client]):
             select(Client).where(
                 and_(Client.company_id == company_id, Client.telegram_id == telegram_id)
             ).options(selectinload(Client.vehicles))
-            async def get_by_max_id(self, company_id: uuid.UUID, max_id: str) -> Optional[Client]:
+        )
+        return result.scalar_one_or_none()
+
+    async def get_by_max_id(self, company_id: uuid.UUID, max_id: str) -> Optional[Client]:
         result = await self.session.execute(
             select(Client).where(
                 and_(Client.company_id == company_id, Client.max_id == max_id)
             ).options(selectinload(Client.vehicles))
-        )
-        return result.scalar_one_or_none()
         )
         return result.scalar_one_or_none()
 
