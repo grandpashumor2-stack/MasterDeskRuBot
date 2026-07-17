@@ -13,6 +13,7 @@ class Client(Base):
     company_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("companies.id", ondelete="CASCADE"))
     telegram_id: Mapped[str | None] = mapped_column(String(50))
     telegram_username: Mapped[str | None] = mapped_column(String(100))
+    max_id: Mapped[str | None] = mapped_column(String(50))
     full_name: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(20))
     notes: Mapped[str | None] = mapped_column(String(1000))
