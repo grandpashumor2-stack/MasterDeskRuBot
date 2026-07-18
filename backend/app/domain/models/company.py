@@ -14,6 +14,7 @@ class Company(Base):
     slug: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     telegram_bot_token: Mapped[str | None] = mapped_column(String(100), unique=True)
     telegram_chat_id: Mapped[str | None] = mapped_column(String(50))
+    max_chat_id: Mapped[str | None] = mapped_column(String(50))
     phone: Mapped[str | None] = mapped_column(String(20))
     address: Mapped[str | None] = mapped_column(String(500))
     city: Mapped[str | None] = mapped_column(String(100))
