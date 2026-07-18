@@ -24,6 +24,7 @@ from maxapi.context.base import BaseContext
 from maxapi.context.state_machine import State, StatesGroup
 from maxapi.enums.parse_mode import TextFormat
 from maxapi.filters.command import CommandStart
+from maxapi.filters.command import Command
 from maxapi.types.attachments.buttons.callback_button import CallbackButton
 from maxapi.types.attachments.buttons.link_button import LinkButton
 from maxapi.types.attachments.buttons.message_button import MessageButton
@@ -257,6 +258,14 @@ async def on_company_code(event: MessageCreated, context: BaseContext) -> None:
     )
 
 
+
+
+@dp.message_created(Command("myid"))
+async def on_myid(event: MessageCreated) -> None:
+    user_id = event.message.sender.user_id if event.message.sender else "неизвестно"
+    await event.message.answer(
+        text=f"Ваш MAX ID: {user_id}\n\nВставьте этот ID в настройках на сайте, в поле для уведомлений о записях.",
+    )
 @dp.message_created(F.message.body.text == "📞 Контакты")
 async def on_contacts(event: MessageCreated, context: BaseContext) -> None:
     company = await get_context_company(context)
@@ -550,6 +559,18 @@ async def create_appointment_and_confirm(event: MessageCreated, context: BaseCon
         format=TextFormat.MARKDOWN,
         attachments=[company_main_keyboard().as_markup()],
     )
+    if company.max_chat_id:
+        try:
+            owner_text = (
+                f"🔔 Новая запись через MAX\n"
+                f"Клиент: {client.full_name}\n"
+                f"Услуга: {data.get('service_name', 'Не указана')}\n"
+                f"Время: {scheduled_at.strftime('%d.%m.%Y %H:%M')}\n"
+                f"Тел: {phone}"
+            )
+            await bot.send_message(user_id=int(company.max_chat_id), text=owner_text)
+        except Exception as e:
+            logger.error(f"Owner MAX notify error: {e}")
     await context.set_state(None)
 
 
