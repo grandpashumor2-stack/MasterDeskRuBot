@@ -73,13 +73,8 @@ function copyLink(text) {
       <div class="flex gap-3">
         <input id="maxChatId" type="text" value="{{ company.max_chat_id or '' }}" placeholder="Напишите /myid боту МастерДеск в MAX" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
         <button onclick="saveMaxChatId()" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Сохранить</button>
-      </div> <div class="mt-4">
-      <label class="block text-sm font-medium text-gray-700 mb-1">Ваш MAX ID для уведомлений о записях</label>
-      <div class="flex gap-3">
-        <input id="maxChatId" type="text" value="{{ company.max_chat_id or '' }}" placeholder="Напишите /myid боту МастерДеск в MAX" class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-        <button onclick="saveMaxChatId()" class="bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">Сохранить</button>
       </div>
-    </div>
+      </div>
       
     </div>
   </div>
@@ -161,6 +156,13 @@ async function saveChatId() {
     body: JSON.stringify({ telegram_chat_id: document.getElementById('chatId').value || null })
   });
   if(r.ok) toast(); else alert('Ошибка');
+}
+async function saveMaxChatId() {
+  const r = await fetch("/api/v1/company/me", {
+    method:"PATCH", headers: headers(),
+    body: JSON.stringify({ max_chat_id: document.getElementById("maxChatId").value || null })
+  });
+  if(r.ok) toast(); else alert("Ошибка");
 }
 
 async function saveAiPrompt() {
