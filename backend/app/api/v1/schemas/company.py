@@ -21,6 +21,7 @@ class CompanyUpdate(BaseModel):
     description: Optional[str] = None
     ai_system_prompt: Optional[str] = None
     telegram_chat_id: Optional[str] = None
+    max_chat_id: Optional[str] = None
 
 
 class CompanyResponse(BaseModel):
