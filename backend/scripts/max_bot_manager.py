@@ -716,6 +716,7 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text="📅 Выберите дату из календаря:",
             attachments=[calendar_keyboard(today.year, today.month, today).as_markup()],
+            format=TextFormat.MARKDOWN,
         )
         await event.answer()
         return
@@ -728,6 +729,7 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
         await event.edit(
             text="📅 Выберите дату из календаря:",
             attachments=[calendar_keyboard(year, month, today).as_markup()],
+            format=TextFormat.MARKDOWN,
         )
         await event.answer()
         return
@@ -760,12 +762,14 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
             await event.edit(
                 text=f"К сожалению, на {target_date.strftime('%d.%m.%Y')} свободных мест нет.\nВыберите другую дату:",
                 attachments=[calendar_keyboard(target_date.year, target_date.month, today).as_markup()],
+                format=TextFormat.MARKDOWN,
             )
             await event.answer()
             return
         await event.edit(
             text=f"📅 Свободное время на {target_date.strftime('%d.%m.%Y')}:",
             attachments=[day_time_slots_keyboard(target_date, times, target_date.year, target_date.month).as_markup()],
+            format=TextFormat.MARKDOWN,
         )
         await event.answer()
         return
