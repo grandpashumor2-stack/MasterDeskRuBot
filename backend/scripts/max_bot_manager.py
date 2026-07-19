@@ -1,3 +1,4 @@
+
 """
 Бот МастерДеск для мессенджера MAX.
 
@@ -7,7 +8,8 @@
   введённому вручную коду
 - Разделы "Наши услуги", "Цены", "Контакты" для привязанного автосервиса
 - Полноценная запись на ремонт: выбор услуги -> марка/модель авто ->
-  выбор свободного времени -> телефон -> создание appointment в БД
+  выбор свободного времени (с пагинацией по дням) -> телефон -> создание
+  appointment в БД
 
 Запуск: MAX_BOT_TOKEN=... python scripts/max_bot_manager.py
 """
@@ -15,7 +17,6 @@ import sys
 sys.path.insert(0, "/app")
 
 import asyncio
-import calendar as pycal
 import logging
 from datetime import date, datetime, timedelta
 
@@ -99,23 +100,12 @@ CB_PRICING = "pricing"
 CB_BACK = "back_to_start"
 CB_SERVICE_PREFIX = "svc:"
 CB_SLOT_PREFIX = "slot:"
-CB_OTHER_TIME = "other_time"
-CB_CALNAV_PREFIX = "calnav:"
-CB_CALDAY_PREFIX = "calday:"
-CB_CAL_BACK = "cal_back_to_slots"
-CB_NOOP = "noop"
+CB_MORE_DAYS_PREFIX = "moredays:"
 
 DAY_NAMES = {
     0: "Понедельник", 1: "Вторник", 2: "Среда",
     3: "Четверг", 4: "Пятница", 5: "Суббота", 6: "Воскресенье",
 }
-
-MONTH_NAMES = {
-    1: "Январь", 2: "Февраль", 3: "Март", 4: "Апрель", 5: "Май", 6: "Июнь",
-    7: "Июль", 8: "Август", 9: "Сентябрь", 10: "Октябрь", 11: "Ноябрь", 12: "Декабрь",
-}
-
-WEEKDAY_SHORT = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 
 
 def main_keyboard() -> InlineKeyboardBuilder:
@@ -170,67 +160,32 @@ def slots_keyboard(slots: dict) -> InlineKeyboardBuilder:
             )
         for i in range(0, len(row_buttons), 2):
             kb.row(*row_buttons[i:i + 2])
-    kb.row(CallbackButton(text="◀️ Другое время", payload=CB_OTHER_TIME))
+    kb.row(CallbackButton(text="Ещё даты ▶️", payload=f"{CB_MORE_DAYS_PREFIX}3"))
     return kb
 
 
-def calendar_keyboard(year: int, month: int, min_date: date) -> InlineKeyboardBuilder:
+def slots_page_keyboard(days_page: list, offset: int, has_more: bool) -> InlineKeyboardBuilder:
     kb = InlineKeyboardBuilder()
-    cal = pycal.Calendar(firstweekday=0)
-    month_days = cal.monthdayscalendar(year, month)
-    noop_counter = 0
-
-    def noop_payload() -> str:
-        nonlocal noop_counter
-        noop_counter += 1
-        return f"{CB_NOOP}:{noop_counter}"
-
-    prev_month = month - 1 if month > 1 else 12
-    prev_year = year if month > 1 else year - 1
-    next_month = month + 1 if month < 12 else 1
-    next_year = year if month < 12 else year + 1
-
-    if (prev_year, prev_month) >= (min_date.year, min_date.month):
-        prev_btn = CallbackButton(text="◀️", payload=f"{CB_CALNAV_PREFIX}{prev_year}-{prev_month:02d}")
-    else:
-        prev_btn = CallbackButton(text=" ", payload=noop_payload())
-    label_btn = CallbackButton(text=f"{MONTH_NAMES[month]} {year}", payload=noop_payload())
-    next_btn = CallbackButton(text="▶️", payload=f"{CB_CALNAV_PREFIX}{next_year}-{next_month:02d}")
-    kb.row(prev_btn, label_btn, next_btn)
-
-    kb.row(*[CallbackButton(text=d, payload=noop_payload()) for d in WEEKDAY_SHORT])
-
-    for week in month_days:
-        row = []
-        for day_num in week:
-            if day_num == 0:
-                row.append(CallbackButton(text=" ", payload=noop_payload()))
-                continue
-            d = date(year, month, day_num)
-            if d < min_date:
-                row.append(CallbackButton(text=" ", payload=noop_payload()))
-            else:
-                row.append(CallbackButton(text=str(day_num), payload=f"{CB_CALDAY_PREFIX}{d.isoformat()}"))
-        kb.row(*row)
-
-    kb.row(CallbackButton(text="↩️ К списку слотов", payload=CB_CAL_BACK))
-    return kb
-
-
-def day_time_slots_keyboard(target_date: date, times: list, year: int, month: int) -> InlineKeyboardBuilder:
-    kb = InlineKeyboardBuilder()
-    row = []
-    for t in times:
-        row.append(CallbackButton(
-            text=t.strftime("%H:%M"),
-            payload=f"{CB_SLOT_PREFIX}{target_date.isoformat()}:{t.strftime('%H:%M')}",
-        ))
-        if len(row) == 3:
-            kb.row(*row)
-            row = []
-    if row:
-        kb.row(*row)
-    kb.row(CallbackButton(text="◀️ К календарю", payload=f"{CB_CALNAV_PREFIX}{year}-{month:02d}"))
+    today = (datetime.utcnow() + timedelta(hours=3)).date()  # МСК
+    for d, times in days_page:
+        label = day_label_for(d, today)
+        row_buttons = []
+        for t in times[:4]:
+            row_buttons.append(
+                CallbackButton(
+                    text=f"{label} {t.strftime('%H:%M')}",
+                    payload=f"{CB_SLOT_PREFIX}{d.isoformat()}:{t.strftime('%H:%M')}",
+                )
+            )
+        for i in range(0, len(row_buttons), 2):
+            kb.row(*row_buttons[i:i + 2])
+    nav_row = []
+    if offset > 0:
+        nav_row.append(CallbackButton(text="◀️ Ближайшее время", payload=f"{CB_MORE_DAYS_PREFIX}0"))
+    if has_more:
+        nav_row.append(CallbackButton(text="Ещё даты ▶️", payload=f"{CB_MORE_DAYS_PREFIX}{offset + 3}"))
+    if nav_row:
+        kb.row(*nav_row)
     return kb
 
 
@@ -712,44 +667,14 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
         await event.answer()
         return
 
-    if payload == CB_OTHER_TIME:
-        company = await get_context_company(context)
-        if not company:
-            await event.answer()
-            return
-        today = (datetime.utcnow() + timedelta(hours=3)).date()
-        await event.edit(
-            text="📅 Выберите дату из календаря:",
-            attachments=[calendar_keyboard(today.year, today.month, today).as_markup()],
-            format=TextFormat.MARKDOWN,
-        )
-        await event.answer()
-        return
-
-    if payload.startswith(CB_CALNAV_PREFIX):
-        ym = payload[len(CB_CALNAV_PREFIX):]
-        year_str, month_str = ym.split("-")
-        year, month = int(year_str), int(month_str)
-        today = (datetime.utcnow() + timedelta(hours=3)).date()
-        await event.edit(
-            text="📅 Выберите дату из календаря:",
-            attachments=[calendar_keyboard(year, month, today).as_markup()],
-            format=TextFormat.MARKDOWN,
-        )
-        await event.answer()
-        return
-
-    if payload.startswith(CB_CALDAY_PREFIX):
-        date_str = payload[len(CB_CALDAY_PREFIX):]
-        target_date = date.fromisoformat(date_str)
+    if payload.startswith(CB_MORE_DAYS_PREFIX):
+        offset = int(payload[len(CB_MORE_DAYS_PREFIX):])
         company = await get_context_company(context)
         if not company:
             await event.answer()
             return
         data = await context.get_data()
         duration = data.get("duration", 60)
-        today = (datetime.utcnow() + timedelta(hours=3)).date()
-        days_ahead = max((target_date - today).days + 1, 1)
         async with AsyncSessionLocal() as session:
             result = await session.execute(
                 select(Company).options(selectinload(Company.working_hours)).where(Company.id == company.id)
@@ -759,60 +684,35 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
             all_slots = await booking_svc.get_available_slots(
                 company.id,
                 company_wh.working_hours if company_wh else [],
-                days_ahead=days_ahead,
+                days_ahead=offset + 10,
                 duration_minutes=duration,
             )
-        times = all_slots.get(target_date, [])
-        if not times:
-            await event.edit(
-                text=f"К сожалению, на {target_date.strftime('%d.%m.%Y')} свободных мест нет.\nВыберите другую дату:",
-                attachments=[calendar_keyboard(target_date.year, target_date.month, today).as_markup()],
-                format=TextFormat.MARKDOWN,
-            )
-            await event.answer()
-            return
-        await event.edit(
-            text=f"📅 Свободное время на {target_date.strftime('%d.%m.%Y')}:",
-            attachments=[day_time_slots_keyboard(target_date, times, target_date.year, target_date.month).as_markup()],
-            format=TextFormat.MARKDOWN,
-        )
-        await event.answer()
-        return
+        all_days = list(all_slots.items())
+        page = all_days[offset:offset + 3]
+        has_more = len(all_days) > offset + 3
 
-    if payload == CB_CAL_BACK:
-        company = await get_context_company(context)
-        if not company:
-            await event.answer()
-            return
-        data = await context.get_data()
-        duration = data.get("duration", 60)
-        async with AsyncSessionLocal() as session:
-            result = await session.execute(
-                select(Company).options(selectinload(Company.working_hours)).where(Company.id == company.id)
-            )
-            company_wh = result.scalar_one_or_none()
-            booking_svc = BookingService(session)
-            slots = await booking_svc.get_available_slots(
-                company.id,
-                company_wh.working_hours if company_wh else [],
-                duration_minutes=duration,
-            )
-            msg_text = booking_svc.format_slots_message(slots)
-        if not slots:
+        if not page:
             await event.edit(
-                text=f"К сожалению, свободных мест нет на ближайшие дни.\nПозвоните нам: {company.phone or 'номер не указан'}",
+                text="Больше свободных дней пока не найдено.",
+                format=TextFormat.MARKDOWN,
+                attachments=[slots_page_keyboard([], max(offset - 3, 0), False).as_markup()],
             )
             await event.answer()
             return
+
+        today = (datetime.utcnow() + timedelta(hours=3)).date()
+        lines = ["📅 Доступное время:\n"]
+        for d, times in page:
+            label = day_label_for(d, today)
+            time_strs = [t.strftime("%H:%M") for t in times[:5]]
+            lines.append(f"**{label}:** {', '.join(time_strs)}")
+        msg_text = "\n".join(lines)
+
         await event.edit(
             text=msg_text,
             format=TextFormat.MARKDOWN,
-            attachments=[slots_keyboard(slots).as_markup()],
+            attachments=[slots_page_keyboard(page, offset, has_more).as_markup()],
         )
-        await event.answer()
-        return
-
-    if payload.startswith(f"{CB_NOOP}:") or payload == CB_NOOP:
         await event.answer()
         return
 
