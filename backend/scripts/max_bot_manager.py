@@ -1,4 +1,3 @@
-
 """
 Бот МастерДеск для мессенджера MAX.
 
@@ -179,6 +178,12 @@ def calendar_keyboard(year: int, month: int, min_date: date) -> InlineKeyboardBu
     kb = InlineKeyboardBuilder()
     cal = pycal.Calendar(firstweekday=0)
     month_days = cal.monthdayscalendar(year, month)
+    noop_counter = 0
+
+    def noop_payload() -> str:
+        nonlocal noop_counter
+        noop_counter += 1
+        return f"{CB_NOOP}:{noop_counter}"
 
     prev_month = month - 1 if month > 1 else 12
     prev_year = year if month > 1 else year - 1
@@ -188,22 +193,22 @@ def calendar_keyboard(year: int, month: int, min_date: date) -> InlineKeyboardBu
     if (prev_year, prev_month) >= (min_date.year, min_date.month):
         prev_btn = CallbackButton(text="◀️", payload=f"{CB_CALNAV_PREFIX}{prev_year}-{prev_month:02d}")
     else:
-        prev_btn = CallbackButton(text=" ", payload=CB_NOOP)
-    label_btn = CallbackButton(text=f"{MONTH_NAMES[month]} {year}", payload=CB_NOOP)
+        prev_btn = CallbackButton(text=" ", payload=noop_payload())
+    label_btn = CallbackButton(text=f"{MONTH_NAMES[month]} {year}", payload=noop_payload())
     next_btn = CallbackButton(text="▶️", payload=f"{CB_CALNAV_PREFIX}{next_year}-{next_month:02d}")
     kb.row(prev_btn, label_btn, next_btn)
 
-    kb.row(*[CallbackButton(text=d, payload=CB_NOOP) for d in WEEKDAY_SHORT])
+    kb.row(*[CallbackButton(text=d, payload=noop_payload()) for d in WEEKDAY_SHORT])
 
     for week in month_days:
         row = []
         for day_num in week:
             if day_num == 0:
-                row.append(CallbackButton(text=" ", payload=CB_NOOP))
+                row.append(CallbackButton(text=" ", payload=noop_payload()))
                 continue
             d = date(year, month, day_num)
             if d < min_date:
-                row.append(CallbackButton(text=" ", payload=CB_NOOP))
+                row.append(CallbackButton(text=" ", payload=noop_payload()))
             else:
                 row.append(CallbackButton(text=str(day_num), payload=f"{CB_CALDAY_PREFIX}{d.isoformat()}"))
         kb.row(*row)
@@ -807,7 +812,7 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
         await event.answer()
         return
 
-    if payload == CB_NOOP:
+    if payload.startswith(f"{CB_NOOP}:") or payload == CB_NOOP:
         await event.answer()
         return
 
