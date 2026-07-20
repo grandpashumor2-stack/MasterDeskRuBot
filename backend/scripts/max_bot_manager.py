@@ -707,8 +707,8 @@ async def on_callback(event: MessageCallback, context: BaseContext) -> None:
             time_strs = [t.strftime("%H:%M") for t in times[:5]]
             lines.append(f"**{label}:** {', '.join(time_strs)}")
         msg_text = "\n".join(lines)
-
-        await event.edit(
+        await bot.send_message(
+            user_id=event.callback.user.user_id,
             text=msg_text,
             format=TextFormat.MARKDOWN,
             attachments=[slots_page_keyboard(page, offset, has_more).as_markup()],
