@@ -231,7 +231,12 @@ async def get_or_create_max_client(session, company, user):
 
 @dp.bot_started()
 async def on_bot_started(event: BotStarted, context: BaseContext) -> None:
-    company = await enter_company(context, event.payload or "")
+    payload_slug = (event.payload or "").strip().lower()
+    existing_data = await context.get_data()
+    existing_slug = existing_data.get("company_slug")
+    if existing_slug and (not payload_slug or payload_slug == existing_slug):
+        return
+    company = await enter_company(context, payload_slug)
     if company:
         await bot.send_message(
             user_id=event.user.user_id,
